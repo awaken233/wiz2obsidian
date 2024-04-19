@@ -1,0 +1,173 @@
+from log import log
+import requests
+import json
+from websocket import create_connection
+
+
+class WizOpenApi:
+    # account server
+    AS_URL = 'https://as.wiz.cn'
+
+    def __init__(self, user_id, password):
+        self.user_id = user_id
+        self.password = password
+        self.token = ''
+        # 知识库服务(knowledge base)
+        self.kb_server = ''
+        self.kb_guid = ''
+
+        self.auth()
+
+    def _login(self):
+        login_url = f'{WizOpenApi.AS_URL}/as/user/login'
+        response = requests.post(login_url, data={'userId': self.user_id, 'password': self.password})
+        # 先判断http 状态码
+        if response.status_code != 200:
+            raise Exception(f'登录失败: http状态码为:{response.status_code}')
+
+        # 判断业务状态码
+        data = response.json()
+        log.info(f'login 为知响应报文为:{json.dumps(data)}')
+        if data['returnCode'] != 200:
+            raise Exception(f'登录失败: 为知响应报文为:{data}')
+        return data
+
+    def auth(self):
+        data = self._login()
+        self.token = data['result']['token']
+        self.kb_server = data['result']['kbServer']
+        self.kb_guid = data['result']['kbGuid']
+        self.user_guid = data['result']['userGuid']
+        # 去除协议的域名 eg vipkshttps10.wiz.cn
+        self.domain = self.kb_server.replace('https://', '')
+
+    def get_note_list(self, version, count):
+        note_list_url = f'{self.kb_server}/ks/note/list/version/{self.kb_guid}'
+        response = requests.get(note_list_url, params={'version': version, 'count': count}, headers={'X-Wiz-Token': self.token})
+        if response.status_code != 200:
+            raise Exception(f'获取笔记列表失败: http状态码为:{response.status_code}')
+        data = response.json()
+        if data['returnCode'] != 200:
+            raise Exception(f'获取笔记列表失败: 为知响应报文为:{response.json()}')
+        return data['result']
+
+    def get_note_detail(self, doc_guid):
+        note_download_url = f'{self.kb_server}/ks/note/download/{self.kb_guid}/{doc_guid}?downloadInfo=0&downloadData=1'
+        response = requests.get(note_download_url, headers={'X-Wiz-Token': self.token})
+        if response.status_code != 200:
+            raise Exception(f'下载笔记失败: http状态码为:{response.status_code}')
+        data = response.json()
+        if data['returnCode'] != 200:
+            raise Exception(f'下载笔记失败: 为知响应报文为:{response.json()}')
+        return data
+
+    def get_note_count(self):
+        url = f'{self.kb_server}/ks/kb/info/{self.kb_guid}'
+        response = requests.get(url, headers={'X-Wiz-Token': self.token})
+        if response.status_code != 200:
+            raise Exception(f'获取笔记总数失败: http状态码为:{response.status_code}')
+        data = response.json()
+        log.info(f'获取笔记总数 response: {json.dumps(data)}')
+
+        if data['returnCode'] != 200:
+            raise Exception(f'获取笔记总数失败: 为知响应报文为:{response.json()}')
+        return data['result']['noteCount']
+
+    # 获取协作笔记token
+    def get_collaboration_token(self, doc_guid):
+        url = f'{self.kb_server}/ks/note/{self.kb_guid}/{doc_guid}/tokens'
+        response = requests.post(url, headers={'X-Wiz-Token': self.token})
+        if response.status_code != 200:
+            raise Exception(f'获取协作笔记token失败: http状态码为:{response.status_code}')
+        data = response.json()
+        if data['returnCode'] != 200:
+            raise Exception(f'获取协作笔记token: 为知响应报文为:{response.json()}')
+        return data['result']['editorToken']
+
+    # 获取协作笔记图片
+    def get_collaboration_image_byte(self, editor_token, doc_guid, image_name):
+        url = f'{self.kb_server}/editor/{self.kb_guid}/{doc_guid}/resources/{image_name}'
+        response = requests.get(url, headers={'cookie': f'x-live-editor-token={editor_token}', 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'})
+        if response.status_code != 200:
+            raise Exception(f'下载协作笔记图片失败: http状态码为:{response.status_code}')
+        return response.content
+
+    # 升级笔记
+    def upgrade_note(self, doc_guid):
+        detail_resp = self.get_note_detail(doc_guid)
+        url = f'{self.kb_server}/ks/note/upload/{self.kb_guid}/{doc_guid}'
+        payload = detail_resp['info']
+        payload['collaborationStatus'] = 'normal'
+        payload['status'] = 'localDataModified'
+        payload['type'] = 'lite/markdown'
+        log.info(f'升级笔记 payload: {json.dumps(payload)}')
+        response = requests.post(url, headers={'X-Wiz-Token': self.token}, json=payload)
+        if response.status_code != 200:
+            raise Exception(f'升级笔记失败: http状态码为:{response.status_code}')
+        data = response.json()
+        log.info(f'升级笔记 response: {json.dumps(data)}')
+        if data['returnCode'] != 200:
+            raise Exception(f'升级笔记失败: 为知响应报文为:{response.json()}')
+        return data
+
+    # 获取协作笔记内容
+    def get_collaboration_content(self, editor_token, doc_guid):
+        wss_url = f"wss://{self.domain}/editor/{self.kb_guid}/{doc_guid}"
+
+        hs_request = {
+            "a": "hs",
+            "id": None,
+            "auth": {
+                "appId": self.kb_guid,
+                "docId": doc_guid,
+                "userId": self.user_guid,
+                "permission": "w",
+                "token": editor_token
+            }
+        }
+
+        f_request = {
+            "a": "f",
+            "c": self.kb_guid,
+            "d": doc_guid,
+            "v": None
+        }
+
+        s_request = {
+            "a":"s",
+            "c": self.kb_guid,
+            "d": doc_guid,
+            "v": None
+        }
+
+
+        """
+        获取文档的data
+        三次hs,一次f, 才可以获取data
+        """
+        ws = create_connection(wss_url)
+        hs = json.dumps(hs_request)
+        f = json.dumps(f_request)
+        s = json.dumps(s_request)
+
+        ws.send(hs)
+        log.info(ws.recv())
+
+        ws.send(hs)
+        log.info(ws.recv())
+
+        ws.send(hs)
+        log.info(ws.recv())
+
+        ws.send(f)
+        log.info(ws.recv())
+        content = ws.recv()
+        log.info(content)
+
+        ws.send(s)
+        ws.recv()
+
+        ws.close()
+        return content
+
+

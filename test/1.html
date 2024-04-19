@@ -1,0 +1,936 @@
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=unicode">
+    <title>CompletableFuture.md</title>
+    <style id="wiz_custom_css"></style>
+</head>
+<body>
+
+<div>### 前言</div>
+<div>&nbsp;</div>
+<div>
+    　　CompletableFuture继承于java.util.concurrent.Future，它本身具备Future的所有特性，并且基于JDK1.8的流式编程以及Lambda表达式等实现一元操作符、异步性以及事件驱动编程模型，可以用来实现多线程的串行关系，并行关系，聚合关系。它的灵活性和更强大的功能是Future无法比拟的。
+</div>
+<div>&nbsp;</div>
+<div>
+    使用`Future`获得异步执行结果时，要么调用阻塞方法`get()`(直到计算完成返回结果)，要么轮询看`isDone()`是否为`true`，这两种方法都不是很好，因为主线程也会被迫等待。只能通过阻塞或者轮询的方式得到任务的结果。阻塞的方式显然和我们的异步编程的初衷相违背，轮询的方式又会耗费无谓的CPU资源，而且也不能及时地得到计算结果，为什么不能用观察者设计模式当计算结果完成及时通知监听者呢？
+</div>
+<div>&nbsp;</div>
+<div>从Java
+    8开始引入了`CompletableFuture`，它针对`Future`做了改进，可以传入回调对象，当异步任务完成或者发生异常时，自动调用回调对象的回调方法。
+</div>
+<div>&nbsp;</div>
+<div>CompletableFuture 默认使用线程池是 ForkJoinPool，而 ForkJoinPool 默认的线程数是 CPU 核数 - 1，擅长处理 CPU
+    密集型任务
+</div>
+<div>&nbsp;</div>
+<div>和js中的Promise很像, 语言和设计理念都是相通的.</div>
+<div>&nbsp;</div>
+<div>我们以获取股票价格为例，看看如何使用`CompletableFuture`：</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>public class Main {</div>
+<div>&nbsp;&nbsp;&nbsp; public static void main(String[] args) throws Exception {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 创建异步执行任务:</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CompletableFuture&lt;Double&gt; cf =
+    CompletableFuture.supplyAsync(Main::fetchPrice);
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 如果执行成功:</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cf.thenAccept((result) -&gt; {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println("price: " + result);</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; });</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 如果执行异常:</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cf.exceptionally((e) -&gt; {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return null;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; });</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 主线程不要立刻结束，否则CompletableFuture默认使用的线程池会立刻关闭:
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Thread.sleep(200);</div>
+<div>&nbsp;&nbsp;&nbsp; }</div>
+<div>&nbsp;</div>
+<div>&nbsp;&nbsp;&nbsp; static Double fetchPrice() {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Thread.sleep(100);</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (InterruptedException e) {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (Math.random() &lt; 0.3) {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; throw new RuntimeException("fetch price
+    failed!");
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return 5 + Math.random() * 20;</div>
+<div>&nbsp;&nbsp;&nbsp; }</div>
+<div>}</div>
+<div>&nbsp;</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>### API命名约定</div>
+<div>&nbsp;</div>
+<div>不以`Async`结尾的方法由相同的线程(调用线程)计算,
+    以`Async`结尾的方法由默认的线程池`ForkJoinPool.commonPool()`或者指定的线程池`executor`中的其他线程执行.
+</div>
+<div>&nbsp;</div>
+<div>`Apply`: 对前一个阶段计算的结果应用一个函数.</div>
+<div>&nbsp;</div>
+<div>`then`: 意味着这个阶段的动作发生当前的阶段正常完成之后</div>
+<div>&nbsp;</div>
+<div>`run`: 适用于无结算结果的方法</div>
+<div>&nbsp;</div>
+<div>`supply` 适用于有计算结果的方法.</div>
+<div>&nbsp;</div>
+<div>Accept: 仅消费, 无计算结果.</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>### 主动完成计算</div>
+<div>&nbsp;</div>
+<div>
+    CompletableFuture类实现了[CompletionStage](https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CompletionStage.html)和[Future](https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Future.html)接口，所以你还是可以像以前一样通过阻塞或者轮询的方式获得结果，尽管这种方式不推荐使用。(推荐在完成回调函数中获取结果)
+</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>public T&nbsp;&nbsp;&nbsp;&nbsp; get() // 抛出受检异常, 需要处理</div>
+<div>public T&nbsp;&nbsp;&nbsp;&nbsp; get(long timeout, TimeUnit unit)</div>
+<div>public T&nbsp;&nbsp;&nbsp;&nbsp; getNow(T valueIfAbsent) //
+    已经计算完则返回结果或者抛出异常，否则返回给定的valueIfAbsent值
+</div>
+<div>public T&nbsp;&nbsp;&nbsp;&nbsp; join() //
+    join方法获取结果方法里不会抛异常，但是执行结果会抛异常，抛出的异常为CompletionException
+</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>示例:</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>private static List&lt;String&gt; findPriceAsync(String product) {</div>
+<div>&nbsp;&nbsp;&nbsp; List&lt;CompletableFuture&lt;String&gt;&gt; completableFutureList = shopList.stream()</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //转异步执行</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .map(shop -&gt; CompletableFuture.supplyAsync(
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    () -&gt; String.format("%s price is %.2f",
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    shop.getName(), shop.getPrice(product))))&nbsp; //格式转换
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .collect(Collectors.toList());</div>
+<div>&nbsp;</div>
+<div>&nbsp;&nbsp;&nbsp; return completableFutureList.stream()</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .map(CompletableFuture::join)</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .collect(Collectors.toList());</div>
+<div>}</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>### 构建 runAsync supplyAsync</div>
+<div>&nbsp;</div>
+<div>`CompletableFuture.completedFuture`是一个静态辅助方法，用来返回一个已经计算好的`CompletableFuture`,一般该方法用在stream
+    转换的时候.
+</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>public static &lt;U&gt; CompletableFuture&lt;U&gt; completedFuture(U value)</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>而以下四个静态方法用来为一段异步执行的代码创建`CompletableFuture`对象：</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>public static CompletableFuture&lt;Void&gt;&nbsp;&nbsp;&nbsp;&nbsp; runAsync(Runnable runnable)</div>
+<div>public static CompletableFuture&lt;Void&gt;&nbsp;&nbsp;&nbsp;&nbsp; runAsync(Runnable runnable, Executor
+    executor)
+</div>
+<div>public static &lt;U&gt; CompletableFuture&lt;U&gt;&nbsp;&nbsp;&nbsp;&nbsp; supplyAsync(Supplier&lt;U&gt;
+    supplier)
+</div>
+<div>public static &lt;U&gt; CompletableFuture&lt;U&gt;&nbsp;&nbsp;&nbsp;&nbsp; supplyAsync(Supplier&lt;U&gt; supplier,
+    Executor executor)
+</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>这里 runAsync 直接就异步执行了, 不要接下来任何处理了.</div>
+<div>&nbsp;</div>
+<div>```</div>
+<div>public class CfTest3 {</div>
+<div>&nbsp;</div>
+<div>&nbsp;&nbsp;&nbsp; public static final Executor EXECUTOR = new ThreadPoolExecutor(10, 20, 60, TimeUnit.SECONDS,
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new ArrayBlockingQueue&lt;&gt;(1000), new
+    ThreadPoolExecutor.CallerRunsPolicy());
+</div>
+<div>&nbsp;</div>
+<div>&nbsp;&nbsp;&nbsp; public static void main(String[] args) {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; List&lt;Integer&gt; list = IntStream.range(0,
+    10).boxed().collect(Collectors.toList());
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; list.forEach(i -&gt; {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CompletableFuture.runAsync(() -&gt; {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; doBussness(i);</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }, EXECUTOR);</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; });</div>
+<div>&nbsp;&nbsp;&nbsp; }</div>
+<div>&nbsp;</div>
+<div>&nbsp;&nbsp;&nbsp; public static void doBussness(Integer ii) {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(ii);</div>
+<div>&nbsp;&nbsp;&nbsp; }</div>
+<div>}</div>
+<div>&nbsp;</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>### 转换(map:thenApply)</div>
+<div>&nbsp;</div>
+<div>CompletableFuture 可以作为单子或算子.
+    不必因为等待一个计算完成而阻塞着调用线程，而是告诉`CompletableFuture`当计算完成的时候请执行某个`function`。而且我们还可以将这些操作串联起来，或者将`CompletableFuture`组合起来。
+</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>public &lt;U&gt; CompletableFuture&lt;U&gt;&nbsp;&nbsp;&nbsp;&nbsp; thenApply(Function&lt;? super T,? extends U&gt;
+    fn)
+</div>
+<div>public &lt;U&gt; CompletableFuture&lt;U&gt;&nbsp;&nbsp;&nbsp;&nbsp; thenApplyAsync(Function&lt;? super T,? extends
+    U&gt; fn)
+</div>
+<div>public &lt;U&gt; CompletableFuture&lt;U&gt;&nbsp;&nbsp;&nbsp;&nbsp; thenApplyAsync(Function&lt;? super T,? extends
+    U&gt; fn, Executor executor)
+</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>这一组函数的功能是当原来的CompletableFuture计算完后，将结果传递给函数`fn`，将`fn`的结果作为新的`CompletableFuture`计算结果。因此它的功能相当于将`CompletableFuture&lt;T&gt;`转换成`CompletableFuture&lt;U&gt;`
+    -&gt; map.
+</div>
+<div>&nbsp;</div>
+<div>例子:</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>public class ThenApplyTest {</div>
+<div>&nbsp;&nbsp;&nbsp; public static void main(String[] args) throws ExecutionException, InterruptedException {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CompletableFuture&lt;Integer&gt; result =
+    CompletableFuture.supplyAsync(ThenApplyTest::randomInteger)
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .thenApply((i) -&gt; i * 8);</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(result.get());</div>
+<div>&nbsp;&nbsp;&nbsp; }</div>
+<div>&nbsp;</div>
+<div>&nbsp;&nbsp;&nbsp; public static Integer randomInteger() {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return 10;</div>
+<div>&nbsp;&nbsp;&nbsp; }</div>
+<div>}</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>需要注意的是，这些转换并不是马上执行的，也不会阻塞，而是在前一个stage完成后继续执行。串行执行.</div>
+<div>&nbsp;</div>
+<div>
+    它们与`handle`方法的区别在于`handle`方法会处理正常计算值和异常，因此它可以屏蔽异常，避免异常继续抛出。而`thenApply`方法只是用来处理正常值，因此一旦有异常就会抛出。
+</div>
+<div>&nbsp;</div>
+<div>### 异步消费结果peek</div>
+<div>&nbsp;</div>
+<div>#### thenAccept 仅消费不返回结果</div>
+<div>&nbsp;</div>
+<div>仅消费结果, 不返回新的计算值</div>
+<div>&nbsp;</div>
+<div>thenAccept和thenApply的区别就是没有返回值.</div>
+<div>&nbsp;</div>
+<div>流中的短路操作</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>public CompletableFuture&lt;Void&gt;&nbsp;&nbsp;&nbsp;&nbsp; thenAccept(Consumer&lt;? super T&gt; action)</div>
+<div>public CompletableFuture&lt;Void&gt;&nbsp;&nbsp;&nbsp;&nbsp; thenAcceptAsync(Consumer&lt;? super T&gt; action)
+</div>
+<div>public CompletableFuture&lt;Void&gt;&nbsp;&nbsp;&nbsp;&nbsp; thenAcceptAsync(Consumer&lt;? super T&gt; action,
+    Executor executor)
+</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>
+    `thenAcceptBoth`以及相关方法提供了类似的功能，当两个CompletionStage都正常完成计算的时候，就会执行提供的`action`，它用来组合另外一个异步的结果。
+</div>
+<div>`runAfterBoth`是当两个CompletionStage都正常完成计算的时候,执行一个Runnable，这个Runnable并不使用计算的结果。</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>public &lt;U&gt; CompletableFuture&lt;Void&gt;&nbsp;&nbsp;&nbsp;&nbsp; thenAcceptBoth(CompletionStage&lt;? extends
+    U&gt; other, BiConsumer&lt;? super T,? super U&gt; action)
+</div>
+<div>public &lt;U&gt; CompletableFuture&lt;Void&gt;&nbsp;&nbsp;&nbsp;&nbsp; thenAcceptBothAsync(CompletionStage&lt;?
+    extends U&gt; other, BiConsumer&lt;? super T,? super U&gt; action)
+</div>
+<div>public &lt;U&gt; CompletableFuture&lt;Void&gt;&nbsp;&nbsp;&nbsp;&nbsp; thenAcceptBothAsync(CompletionStage&lt;?
+    extends U&gt; other, BiConsumer&lt;? super T,? super U&gt; action, Executor executor)
+</div>
+<div>public&nbsp;&nbsp;&nbsp;&nbsp; CompletableFuture&lt;Void&gt;&nbsp;&nbsp;&nbsp;&nbsp; runAfterBoth(CompletionStage&lt;?&gt;
+    other,&nbsp; Runnable action)
+</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>例子如下:</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>CompletableFuture&lt;Integer&gt; future = CompletableFuture.supplyAsync(() -&gt; {</div>
+<div>&nbsp;&nbsp;&nbsp; return 100;</div>
+<div>});</div>
+<div>CompletableFuture&lt;Void&gt; f =&nbsp; future.thenAcceptBoth(CompletableFuture.completedFuture(10), (x, y) -&gt;
+    System.out.println(x * y));
+</div>
+<div>System.out.println(f.get());</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>#### thenRun 仅消费, 不接受上一个future执行的结果</div>
+<div>&nbsp;</div>
+<div>不接受上一个future执行的结果</div>
+<div>&nbsp;</div>
+<div>
+    更彻底地，下面一组方法当计算完成的时候会执行一个Runnable,与`thenAccept`不同，Runnable并不使用CompletableFuture计算的结果。
+</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>public CompletableFuture&lt;Void&gt;&nbsp;&nbsp;&nbsp;&nbsp; thenRun(Runnable action)</div>
+<div>public CompletableFuture&lt;Void&gt;&nbsp;&nbsp;&nbsp;&nbsp; thenRunAsync(Runnable action)</div>
+<div>public CompletableFuture&lt;Void&gt;&nbsp;&nbsp;&nbsp;&nbsp; thenRunAsync(Runnable action, Executor executor)</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>因此先前的CompletableFuture计算的结果被忽略了,这个方法返回`CompletableFuture&lt;Void&gt;`类型的对象。</div>
+<div>&nbsp;</div>
+<div>&gt;
+    因此，你可以根据方法的参数的类型来加速你的记忆。`Runnable`类型的参数会忽略计算的结果，`Consumer`是纯消费计算结果，`BiConsumer`会组合另外一个`CompletionStage`纯消费，`Function`会对计算结果做转换，`BiFunction`会组合另外一个`CompletionStage`的计算结果做转换。
+</div>
+<div>&nbsp;</div>
+<div>### 组合</div>
+<div>&nbsp;</div>
+<div>区别在于是否依赖上一个cf执行的结果.</div>
+<div>&nbsp;</div>
+<div>#### thenCompose 有依赖关系</div>
+<div>&nbsp;</div>
+<div>组合有依赖关系的 CompletableFuture. 即下一个 CompletableFuture 的入参依赖上一个 CompletableFuture 的计算结果.</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>public &lt;U&gt; CompletableFuture&lt;U&gt;&nbsp;&nbsp;&nbsp;&nbsp; thenCompose(Function&lt;? super T,? extends
+    CompletionStage&lt;U&gt;&gt; fn)
+</div>
+<div>public &lt;U&gt; CompletableFuture&lt;U&gt;&nbsp;&nbsp;&nbsp;&nbsp; thenComposeAsync(Function&lt;? super T,?
+    extends CompletionStage&lt;U&gt;&gt; fn)
+</div>
+<div>public &lt;U&gt; CompletableFuture&lt;U&gt;&nbsp;&nbsp;&nbsp;&nbsp; thenComposeAsync(Function&lt;? super T,?
+    extends CompletionStage&lt;U&gt;&gt; fn, Executor executor)
+</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>
+    这一组方法接受一个Function作为参数，这个Function的输入是当前的CompletableFuture的计算值，返回结果将是一个新的CompletableFuture，这个新的CompletableFuture会组合原来的CompletableFuture和函数返回的CompletableFuture。
+</div>
+<div>&nbsp;</div>
+<div>例子：一个虚拟场景：在购物应用里，我们要在处理订单之后，通过订单金额来给用户算积分</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>CompletableFuture&lt;Integer&gt; resultFuture=CompletableFuture.supplyAsync(()-&gt;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //模拟耗时2秒处理订单</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; timeConsuming(2000);</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //返回订单金额</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return 30;</div>
+<div>}).thenCompose(value-&gt;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CompletableFuture.supplyAsync(()-&gt;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //根据订单金额计算积分
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(value&lt;50){</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    return 1;
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }else{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    return 2;
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; })</div>
+<div>);</div>
+<div>&nbsp;</div>
+<div>try {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Integer result=resultFuture.get(5,TimeUnit.SECONDS);</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println("result=
+    "+result);//result=1
+</div>
+<div>} catch (InterruptedException e) {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();</div>
+<div>} catch (ExecutionException e) {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();</div>
+<div>} catch (TimeoutException e) {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();</div>
+<div>}</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>#### thenCombine 无依赖关系</div>
+<div>&nbsp;</div>
+<div>不需要关心多个异步之间是否有数据依赖关系, 以并行的将各个异步处理的结果合并起来</div>
+<div>&nbsp;</div>
+<div>示例: 想获取某本书在A、B两家书店的价格并计算均值</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>CompletableFuture&lt;Integer&gt; resultFuture=CompletableFuture.supplyAsync(()-&gt;{</div>
+<div>&nbsp; //模拟耗时1秒获取A书店价格</div>
+<div>&nbsp; timeConsuming(1000);</div>
+<div>&nbsp; //返回价格</div>
+<div>&nbsp; return 30;</div>
+<div>}).thenCombine(</div>
+<div>&nbsp; CompletableFuture.supplyAsync(()-&gt;{</div>
+<div>&nbsp; //模拟耗时1秒获取B书店价格</div>
+<div>&nbsp; timeConsuming(1000);</div>
+<div>&nbsp; //返回价格</div>
+<div>&nbsp; return 50;</div>
+<div>}),(a,b)-&gt;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println("a="+a);//30</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println("b="+b);//50</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return (a+b)/2;</div>
+<div>}</div>
+<div>);</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>// 另一个示例 结合stream</div>
+<div>&nbsp;</div>
+<div>/*********准备【书籍_书店_价格】数据 begin***********/</div>
+<div>Map&lt;String,Integer&gt; priceMap=new HashMap&lt;&gt;();</div>
+<div>priceMap.put("001_A",30);</div>
+<div>priceMap.put("001_B",50);</div>
+<div>&nbsp;</div>
+<div>priceMap.put("002_A",40);</div>
+<div>priceMap.put("002_B",60);</div>
+<div>&nbsp;</div>
+<div>priceMap.put("003_A",100);</div>
+<div>priceMap.put("003_B",120);</div>
+<div>&nbsp;</div>
+<div>/*********准备【书籍_书店_价格】数据 end***********/</div>
+<div>&nbsp;</div>
+<div>//待查书籍ID列表</div>
+<div>Stream&lt;String&gt; bookStreams=Arrays.stream(new String[]{"001","002","003"});</div>
+<div>&nbsp;</div>
+<div>List&lt;CompletableFuture&lt;Integer&gt;&gt; futureList=bookStreams.map(book-&gt;CompletableFuture.supplyAsync(()-&gt;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //模拟耗时1秒获取A书店价格</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; timeConsuming(2000);</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //返回价格</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return priceMap.get(book+"_A");</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp; }).thenCombine(</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CompletableFuture.supplyAsync(()-&gt;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //模拟耗时1秒获取A书店价格</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; timeConsuming(2000);</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //返回价格</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return priceMap.get(book+"_B");</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp; }),(a,b)-&gt;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //计算均值</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return (a+b)/2;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</div>
+<div>)).collect(Collectors.toList());</div>
+<div>&nbsp;</div>
+<div>List&lt;Integer&gt; list=futureList.stream().map(CompletableFuture::join).collect(Collectors.toList());</div>
+<div>&nbsp;</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>
+    这两个操作A、B是完全异步执行的，理论上，获取两个价格的最大时间=max(A、B)，而不是A、B两个时间叠加，在实际应用中，性能提升会比较明显。
+</div>
+<div>&nbsp;</div>
+<div>### 其他组合</div>
+<div>&nbsp;</div>
+<div>- thenAcceptBoth(组合两个future, 产生的cf没有返回值)</div>
+<div>- applyToEither(取2个future中最先返回的,有返回值)</div>
+<div>- acceptEither(取2个future中最先返回的,无返回值)</div>
+<div>- runAfterBoth 当两个cs都执行完成时, 执行给定的动作.</div>
+<div>&nbsp;</div>
+<div>### allOf&amp;anyOf组合</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>//allOf 当所有的cf完成时, 返回一个新的cf</div>
+<div>public static CompletableFuture&lt;Void&gt; allOf(CompletableFuture&lt;?&gt;... cfs)</div>
+<div>//anyOf</div>
+<div>public static CompletableFuture&lt;Object&gt; anyOf(CompletableFuture&lt;?&gt;... cfs)</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>`allOf()`实现“所有`CompletableFuture`都必须成功”</div>
+<div>&nbsp;</div>
+<div>`anyOf()`实现“任意个`CompletableFuture`只要一个成功”</div>
+<div>&nbsp;</div>
+<div>### 结合Stream</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>&nbsp;&nbsp;&nbsp; //根据业务定义线程池</div>
+<div>&nbsp;&nbsp;&nbsp; private static ExecutorService executor = new ThreadPoolExecutor(50, 100, 10,
+    TimeUnit.SECONDS,
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new ArrayBlockingQueue&lt;&gt;(200));</div>
+<div>&nbsp;</div>
+<div>&nbsp;&nbsp;&nbsp; public static void main(String[] args) throws ExecutionException, InterruptedException {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; long time1 = System.currentTimeMillis();</div>
+<div>&nbsp;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; List&lt;CompletableFuture&lt;Integer&gt;&gt; list = IntStream.range(0,
+    100).boxed()
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .map(i -&gt; CompletableFuture.supplyAsync(
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; () -&gt; doBussness(i),
+    executor)).collect(Collectors.toList());
+</div>
+<div>&nbsp;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //等待所以业务处理完毕</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CompletableFuture.allOf(list.toArray(new
+    CompletableFuture[0])).join();
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println("总耗时" + (System.currentTimeMillis() - time1));
+</div>
+<div>&nbsp;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //输出所有处理结果</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for (CompletableFuture&lt;Integer&gt; completableFuture : list) {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(completableFuture.get());
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</div>
+<div>&nbsp;&nbsp;&nbsp; }</div>
+<div>&nbsp;</div>
+<div>&nbsp;&nbsp;&nbsp; private static int doBussness(int i) {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //模拟处理耗时3s</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; TimeUnit.SECONDS.sleep(2);</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (InterruptedException e) {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return i;</div>
+<div>&nbsp;&nbsp;&nbsp; }</div>
+<div>&nbsp;</div>
+<div>// 逐步 map, 我觉得比上面的写法更加直观且容易理解</div>
+<div>List&lt;CompletableFuture&lt;Integer&gt;&gt; list = IntStream.range(0, 100).boxed()</div>
+<div>&nbsp;&nbsp;&nbsp; .map(CompletableFuture::completedFuture)</div>
+<div>&nbsp;&nbsp;&nbsp; // 这里 SolutionDemo::doBussness lambda 表达式的使用真是颠覆了我的认知, 太简洁了. 入参一致,
+    可以直接使用方法引用表达式.
+</div>
+<div>&nbsp;&nbsp;&nbsp; .map(future -&gt; future.thenApplyAsync(SolutionDemo::doBussness, executor))</div>
+<div>&nbsp;&nbsp;&nbsp; .collect(Collectors.toList());</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>### 默认线程池踩坑</div>
+<div>&nbsp;</div>
+<div>
+    **CompletableFuture是否使用默认线程池的依据，和机器的CPU核心数有关。当CPU核心数-1大于1时，才会使用默认的线程池，否则将会为每个CompletableFuture的任务创建一个新线程去执行**。
+</div>
+<div>&nbsp;</div>
+<div>
+    即，CompletableFuture的默认线程池，只有在**双核以上的机器**内才会使用。在双核及以下的机器中，会为每个任务创建一个新线程，**等于没有使用线程池，且有资源耗尽的风险**。
+</div>
+<div>&nbsp;</div>
+<div>
+    因此建议，在使用CompletableFuture时，**务必要自定义线程池**。因为即便是用到了默认线程池，**池内的核心线程数，也为机器核心数-1**。也就意味着假设你是4核机器，那最多也只有3个核心线程，对于CPU密集型的任务来说倒还好，但是我们平常写业务代码，更多的是IO密集型任务，对于IO密集型的任务来说，这其实远远不够用的，**会导致大量的IO任务在等待**，导致吞吐率大幅度下降，即默认线程池比较适用于CPU密集型任务。
+</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>### 异常处理</div>
+<div>&nbsp;</div>
+<div>whenComplete 返回源cf</div>
+<div>&nbsp;</div>
+<div>exceptionally handle == whenComplete + map</div>
+<div>&nbsp;</div>
+<div>#### whenComplete 计算完成时的回调</div>
+<div>&nbsp;</div>
+<div>当 CompletableFuture 计算完成或者出现异常时, 都会回调 whenComplete 函数. 通常用来记录日志. 记录入参,出参.异常.
+</div>
+<div>&nbsp;</div>
+<div>whenComplete 返回原始的 CompletableFuture.</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>public CompletableFuture&lt;T&gt;&nbsp;&nbsp;&nbsp;&nbsp; whenComplete(BiConsumer&lt;? super T,? super Throwable&gt;
+    action)
+</div>
+<div>public CompletableFuture&lt;T&gt;&nbsp;&nbsp;&nbsp;&nbsp; whenCompleteAsync(BiConsumer&lt;? super T,? super
+    Throwable&gt; action)
+</div>
+<div>public CompletableFuture&lt;T&gt;&nbsp;&nbsp;&nbsp;&nbsp; whenCompleteAsync(BiConsumer&lt;? super T,? super
+    Throwable&gt; action, Executor executor)
+</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>whenComplete BiConsumer 处理正常计算结果或异常情况.</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>public class WhenCompleteTest {</div>
+<div>&nbsp;&nbsp;&nbsp; public static void main(String[] args) {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CompletableFuture&lt;String&gt; cf1 = CompletableFuture.supplyAsync(() -&gt;
+    "hello");
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CompletableFuture&lt;String&gt; cf2 = cf1.whenComplete((v, e) -&gt;
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    System.out.println(String.format("value:%s, exception:%s", v, e)));
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(cf2.join());</div>
+<div>&nbsp;&nbsp;&nbsp; }</div>
+<div>}</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>#### exceptionally = catch</div>
+<div>&nbsp;</div>
+<div>exceptionally 就相当于 catch，出现异常，将会跳过 thenApply 的后续操作，直接捕获异常，进行异常处理</div>
+<div>&nbsp;</div>
+<div>入参: 异常</div>
+<div>&nbsp;</div>
+<div>出参: 出现异常的时返回的默认值.</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>public CompletableFuture&lt;T&gt; exceptionally(Function&lt;Throwable, ? extends T&gt; fn);</div>
+<div>public &lt;U&gt; CompletionStage&lt;U&gt; handle(BiFunction&lt;? super T, Throwable, ? extends U&gt; fn);</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>boolean completeExceptionally(Throwable ex);</div>
+<div>// 手动调用该方法, 调用者将会接收到 ExecutionException 异常. 该异常中包含原始的异常</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>&nbsp;</div>
+<div>CompletableFuture&lt;String&gt; future = CompletableFuture.supplyAsync(() -&gt; {</div>
+<div>&nbsp;&nbsp;&nbsp; throw new RuntimeException();</div>
+<div>})</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .exceptionally(ex -&gt; "errorResultA")</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .thenApply(resultA -&gt; resultA + " resultB")</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .thenApply(resultB -&gt; resultB + " resultC")</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .thenApply(resultC -&gt; resultC + " resultD");</div>
+<div>&nbsp;</div>
+<div>System.out.println(future.join());</div>
+<div>&nbsp;</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>上面的代码中，任务 A 抛出异常，然后通过`.exceptionally()` 方法处理了异常，并返回新的结果，这个新的结果将传递给任务
+    B。所以最终的输出结果是：
+</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>errorResultA resultB resultC resultD</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>#### handle = finally</div>
+<div>&nbsp;</div>
+<div>用多线程，良好的习惯是使用 try/finally 范式，handle 就可以起到 finally 的作用</div>
+<div>&nbsp;</div>
+<div>handle 接受两个参数，一个是正常返回值，一个是异常</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>Integer age = -1;</div>
+<div>&nbsp;</div>
+<div>CompletableFuture&lt;String&gt; maturityFuture = CompletableFuture.supplyAsync(() -&gt; {</div>
+<div>&nbsp;&nbsp;&nbsp; if( age &lt; 0 ) {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; throw new IllegalArgumentException("何方神圣？");</div>
+<div>&nbsp;&nbsp;&nbsp; }</div>
+<div>&nbsp;&nbsp;&nbsp; if(age &gt; 18) {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return "大家都是成年人";</div>
+<div>&nbsp;&nbsp;&nbsp; } else {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return "未成年禁止入内";</div>
+<div>&nbsp;&nbsp;&nbsp; }</div>
+<div>}).thenApply((str) -&gt; {</div>
+<div>&nbsp;&nbsp;&nbsp; log.info("游戏开始");</div>
+<div>&nbsp;&nbsp;&nbsp; return str;</div>
+<div>}).handle((res, ex) -&gt; {</div>
+<div>&nbsp;&nbsp;&nbsp; if(ex != null) {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; log.info("必有蹊跷，来者" + ex.getMessage());</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return "Unknown!";</div>
+<div>&nbsp;&nbsp;&nbsp; }</div>
+<div>&nbsp;&nbsp;&nbsp; return res;</div>
+<div>});</div>
+<div>&nbsp;</div>
+<div>log.info(maturityFuture.get());</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>### 实战中异常处理case</div>
+<div>&nbsp;</div>
+<div>所有的cf都要显示的调用 handle 来处理异常. CompletableFuture.runAsync 也要处理异常. 否则 runAsync 中间出任何异常是不会打印一行日志,
+    排查问题非常困难.
+</div>
+<div>&nbsp;</div>
+<div>### JDK 9 新增API</div>
+<div>&nbsp;</div>
+<div>在Java 9中，&nbsp; CompletableFuture API通过以下更改得到了进一步增强：</div>
+<div>&nbsp;</div>
+<div>- 新工厂方法增加了</div>
+<div>- 支持延迟和超时</div>
+<div>- 改进了对子类化的支持。</div>
+<div>&nbsp;</div>
+<div>引入了新的实例API：</div>
+<div>&nbsp;</div>
+<div>- Executor defaultExecutor()</div>
+<div>- CompletableFuture newIncompleteFuture()</div>
+<div>- CompletableFuture copy()</div>
+<div>- CompletionStage minimalCompletionStage()</div>
+<div>- CompletableFuture completeAsync(Supplier&lt;? extends T&gt; supplier, Executor executor)</div>
+<div>- CompletableFuture completeAsync(Supplier&lt;? extends T&gt; supplier)</div>
+<div>- CompletableFuture orTimeout(long timeout, TimeUnit unit)</div>
+<div>- CompletableFuture completeOnTimeout(T value, long timeout, TimeUnit unit)</div>
+<div>&nbsp;</div>
+<div>还有一些静态实用方法：</div>
+<div>&nbsp;</div>
+<div>- Executor delayedExecutor(long delay, TimeUnit unit, Executor executor)</div>
+<div>- Executor delayedExecutor(long delay, TimeUnit unit)</div>
+<div>-&nbsp; CompletionStage completedStage(U value)</div>
+<div>-&nbsp; CompletionStage failedStage(Throwable ex)</div>
+<div>-&nbsp; CompletableFuture failedFuture(Throwable ex)</div>
+<div>&nbsp;</div>
+<div>最后，为了解决超时问题，Java 9又引入了两个新功能：</div>
+<div>&nbsp;</div>
+<div>- orTimeout()</div>
+<div>- completeOnTimeout()</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>####
+    [CompletionStage和CompletableFuture有什么区别](https://stackoverflow.com/questions/47571117/what-is-the-difference-between-completionstage-and-completablefuture)
+</div>
+<div>&nbsp;</div>
+<div>CompletionStage 是一个接口, CompletableFuture 是 CompletionStage 的唯一实现类. 方法声明返回的 CompletionStage
+    实际上就是CompletableFuture. 通常你返回接口而不是实现, 未来可能有新的实现类. 就像`List&lt;Integer&gt; integerList =
+    new ArrayList&lt;&gt;();`而不是`ArrayList&lt;Integer&gt; integerList = new ArrayList&lt;&gt;();`
+</div>
+<div>&nbsp;</div>
+<div>因为调用者拿到的是父类的引用, 被调用代码被偷偷换成另一个子类之后，调用者不需要做任何修改， 这就是解耦了.</div>
+<div>&nbsp;</div>
+<div>多态体现为父类引用变量可以指向子类对象.向上转型(upcasting)</div>
+<div>&nbsp;</div>
+<div>Father f1 = new Son(); // 这就叫 upcasting （向上转型)</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>Son s1 = (Son)f1; // 这就叫 downcasting (向下转型)</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>### 并行流使用和理解的误区</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>private static List&lt;Integer&gt; list1 = new ArrayList&lt;&gt;();</div>
+<div>IntStream.range(0, 10000).parallel().forEach(list2::add);</div>
+<div>// 并发修改公共外部数据, 这里代码是有问题的.</div>
+<div>&nbsp;</div>
+<div>// 直接收集并转换为一个新的容器即可.</div>
+<div>// 内部实现原理是使用forkjoin框架, 每个线程处理单独的集合. 不会存在并发问题, 最后再统一join成一个集合.</div>
+<div>// 使用并发容器或者加锁都挺可笑的.</div>
+<div>IntStream.range(0, 10000).parallel().boxed().collect(Collectors.toList());</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>// 这里处理不优雅的地方有两个:</div>
+<div>// 没必要转化为并发容器 map CopyOnWriteArrayList::new 多余</div>
+<div>// 不应该声明为: List&lt;CopyOnWriteArrayList 应该声明为基类: List&lt;List&lt; 不应该声明为实现类.</div>
+<div>List&lt;CopyOnWriteArrayList&lt;KppRuleParseDTO&gt;&gt; concurrentRuleList = Lists.partition(ruleList,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    ThreadPoolConfiguration.PARTITION_SIZE).stream().map(
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    CopyOnWriteArrayList::new).collect(Collectors.toList());
+</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>// ----------------------------&gt; 验证无需使用并发容器 的代码. 执行这里的代码并没有并发异常.</div>
+<div>public class CfTest {</div>
+<div>&nbsp;</div>
+<div>&nbsp;&nbsp;&nbsp; public static final Executor EXECUTOR = new ThreadPoolExecutor(10, 20, 60, TimeUnit.SECONDS,
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new ArrayBlockingQueue&lt;&gt;(1000), new
+    ThreadPoolExecutor.CallerRunsPolicy());
+</div>
+<div>&nbsp;</div>
+<div>&nbsp;&nbsp;&nbsp; public static void main(String[] args) {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; List&lt;Integer&gt; list = IntStream.range(0,
+    1000000).boxed().collect(Collectors.toList());
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; List&lt;List&lt;Integer&gt;&gt; partition = Lists.partition(list,
+    1000);
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; List&lt;CompletableFuture&lt;List&lt;Integer&gt;&gt;&gt; collectCf =
+    partition.stream()
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .map(CompletableFuture::completedFuture)</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .map(future -&gt;
+    future.thenApplyAsync(CfTest::doBussness, EXECUTOR))
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .collect(Collectors.toList());</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; List&lt;Integer&gt; join = FutureUtils.sequenceList(collectCf).join();
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(join);</div>
+<div>&nbsp;&nbsp;&nbsp; }</div>
+<div>&nbsp;</div>
+<div>&nbsp;&nbsp;&nbsp; public static List&lt;Integer&gt; doBussness(List&lt;Integer&gt; list) {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return list.stream().map(i -&gt; i * 2).collect(Collectors.toList());
+</div>
+<div>&nbsp;&nbsp;&nbsp; }</div>
+<div>}</div>
+<div>&nbsp;</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>### 开启异步线程同步执行</div>
+<div>&nbsp;</div>
+<div>异步线程执行单个任务</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>// 启动一个异步线程, 用该异步线程去单线程顺序执行.</div>
+<div>CompletableFuture.runAsync(() -&gt; {</div>
+<div>&nbsp;&nbsp;&nbsp; params.forEach(param -&gt; {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; callback.accept(param);</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (Exception e) {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; log.error("execute error, param={} {}",
+    JsonUtil.toJson(param),
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    ExceptionUtil.stacktraceToString(e, 2000));
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</div>
+<div>&nbsp;&nbsp;&nbsp; });</div>
+<div>}, SpringContextUtil.getBean("batchCommonExecutor"));</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>### 快速失败校验</div>
+<div>&nbsp;</div>
+<div>cf 来实现快速失败校验不合适.</div>
+<div>&nbsp;</div>
+<div>场景: 批量异动校验, 张三的校验需要1s(校验失败,不往下继续校验了), 李四的校验需要5s. 我期望我批量异步校验的方法,
+    1s就直接返回了. 而不是需要等待最大校验时间之后返回.
+</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>```java</div>
+<div>&nbsp;&nbsp;&nbsp; public static &lt;T&gt; Response&lt;Object&gt; fastFailCheck(Collection&lt;T&gt; params,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Function&lt;T, Response&lt;?&gt;&gt; callback) {</div>
+<div>&nbsp;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Objects.requireNonNull(params, "params is null");</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Objects.requireNonNull(callback, "callback is null");</div>
+<div>&nbsp;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; List&lt;CompletableFuture&lt;Response&lt;?&gt;&gt;&gt; cfs =
+    params.stream()
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .map(toCfTask(callback, Response.error(),
+    DEFAULT_EXECUTOR))
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .collect(Collectors.toList());</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CompletableFuture&lt;List&lt;Response&lt;?&gt;&gt;&gt; sequence =
+    FutureUtils.sequence(cfs);
+</div>
+<div>&nbsp;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CompletableFuture&lt;Response&lt;?&gt;&gt; anyCheckFailCf = new
+    CompletableFuture&lt;&gt;();
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; cfs.forEach(cf -&gt; cf.handle((r, e) -&gt; {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (!r.isSuccess()) {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return
+    anyCheckFailCf.complete(r);
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return r;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }));</div>
+<div>&nbsp;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; CompletableFuture&lt;Object&gt; sequence2 =
+    CompletableFuture.anyOf(sequence,
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; anyCheckFailCf);</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Object join = sequence2.join();</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (join instanceof List) {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return null;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return (Response&lt;Object&gt;) join;</div>
+<div>&nbsp;&nbsp;&nbsp; }</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; @PostMapping("debug/fastFailCheck")</div>
+<div>&nbsp;&nbsp;&nbsp; public Response fastFailCheck() {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // 统计耗时</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; long start = System.currentTimeMillis();</div>
+<div>&nbsp;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Response&lt;Object&gt; objectResponse = CfTaskExecutors.fastFailCheck(
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Lists.newArrayList(1, 2, 3), ii -&gt; {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    if (ii == 1) {
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    Thread.sleep(1000);
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    if (true) {
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    throw new RuntimeException("test");
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    }
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    return Response.success("111111");
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    }
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    if (ii == 2) {
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    Thread.sleep(5000);
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    return Response.success("22222");
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    }
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    if (ii == 3) {
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    Thread.sleep(6000);
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    return Response.success("3333");
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    }
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch
+    (InterruptedException e) {
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    throw new RuntimeException(e);
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return
+    Response.error("4444444");
+</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; });</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; log.error("objectResponse:{}", objectResponse);</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; log.error("耗时:{}", System.currentTimeMillis() - start);</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return Response.success();</div>
+<div>&nbsp;&nbsp;&nbsp; }</div>
+<div>```</div>
+<div>&nbsp;</div>
+<div>能实现期望的结果. 但是其他校验线程还是在后台运行, 其他线程并没有中断, 整体的业务的吞吐量会受影响. 如果重复点击几次,
+    核心线程用完了, 就会放到延迟队列. 再次执行校验将会非常的慢.
+</div>
+<div>&nbsp;</div>
+<div>期望: 其他线程直接中断, 不继续执行了, 不要影响线程池的吞吐量.</div>
+<div>实际: cf 不支持&nbsp; cancel 无法中断.</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>https://ifeve.com/completablefuture/</div>
+<div>&nbsp;</div>
+<div>&gt; 结论: CompletableFuture不支持 cancel. 无法中断.</div>
+<div>&gt;</div>
+<div>&gt;
+    CompletableFuture的这种cancel限制并不是bug,而是一种设计决定。CompletableFuture天生就没有和任何线程绑定在一起，但Future却几乎总是代表在后台运行的task。使用new关键字创造一个CompletableFuture(new
+    CompletableFuture&lt;&gt;())就很好，这时没有任何底层的线程去取消。但是仍然有大部分的CompletableFuture和后台的task以及线程有联系，在这种情况下有问题的cancel()就是一个潜在的问题。我不建议盲目地用CompletableFuture替换Future，因为如果程序里面有cancel()，那么替换可能会改变程序的行为。这就意味着CompletableFuture有意地违背了[里氏替换原则](http://en.wikipedia.org/wiki/Liskov_substitution_principle)，我们要认真思考这样做的含义。
+</div>
+
+</body>
+</html>
