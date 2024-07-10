@@ -8,9 +8,10 @@ class WizOpenApi:
     # account server
     AS_URL = 'https://as.wiz.cn'
 
-    def __init__(self, user_id, password):
-        self.user_id = user_id
-        self.password = password
+    def __init__(self, config):
+        self.user_id = config.user_id
+        self.password = config.password
+        self.group_name = config.group_name
         self.token = ''
         # 知识库服务(knowledge base)
         self.kb_server = ''
@@ -32,6 +33,23 @@ class WizOpenApi:
             raise Exception(f'登录失败: 为知响应报文为:{data}')
         return data
 
+    def get_group_list(self):
+        """
+        获取群组知识库列表
+        """
+        group_list_url = f'{WizOpenApi.AS_URL}/as/user/groups'
+        response = requests.get(group_list_url, headers={'X-Wiz-Token': self.token})
+        # 先判断http 状态码
+        if response.status_code != 200:
+            raise Exception(f'获取群组列表失败: http状态码为:{response.status_code}')
+
+        # 判断业务状态码
+        data = response.json()
+        log.info(f'get_group_list 为知响应报文为:{json.dumps(data)}')
+        if data['returnCode'] != 200:
+            raise Exception(f'获取群组列表失败: 为知响应报文为:{data}')
+        return data
+
     def auth(self):
         data = self._login()
         self.token = data['result']['token']
@@ -40,6 +58,30 @@ class WizOpenApi:
         self.user_guid = data['result']['userGuid']
         # 去除协议的域名 eg vipkshttps10.wiz.cn
         self.domain = self.kb_server.replace('https://', '')
+        # 设置群组笔记配置
+        self.set_group_config()
+
+
+    def set_group_config(self):
+        """
+        如果配置文件中配置了 group_name & 不为空, 开始默认导出群组笔记
+        """
+        # 如果 self.group_name 直接return
+        if self.group_name is None or self.group_name == '':
+            return
+        # 获取 get_group_list, 遍历列表是否等于配置的群组名称
+        group_list_data = self.get_group_list()
+
+        matching_group = next((group for group in group_list_data['result'] if group['name'] == self.group_name), None)
+
+        if not matching_group:
+            raise Exception(f'配置的群组名称:{self.group_name} 不存在, 请检查配置文件')
+
+        # 存在, 重设相关参数
+        self.kb_guid = matching_group['kbGuid']
+        self.kb_server = matching_group['kbServer']
+        self.domain = self.kb_server.replace('https://', '')
+
 
     def get_note_list(self, version, count):
         note_list_url = f'{self.kb_server}/ks/note/list/version/{self.kb_guid}'

@@ -1,2 +1,4 @@
 user_id:
 password:
+# 群组名称(为空将默认导入个人笔记)
+group_name:

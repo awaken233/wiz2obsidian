@@ -17,8 +17,8 @@ handlers:
 loggers:
   mylogger:
     level: DEBUG
-    handlers: [ console ,file]
+    handlers: [ console ]
     propagate: no
 root:
   level: DEBUG
-  handlers: [ console ,file]
+  handlers: [ console ]

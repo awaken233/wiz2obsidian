@@ -13,7 +13,7 @@ def main():
     config = Config.load()
 
     # 实例化API客户端
-    api_client = WizOpenApi(config.user_id, config.password)
+    api_client = WizOpenApi(config)
 
     # 实例化数据库
     with Database() as db:
