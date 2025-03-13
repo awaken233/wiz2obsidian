@@ -74,7 +74,7 @@
 项目支持处理以下几种类型的笔记：
 
 - HTML 笔记（document）
-   - 使用 `html2text` 库直接将 HTML 转换为 Markdown. 解析后的markdown文本, 差强人意, 完全取决于富文本的格式.
+   - 使用 `html2text` 库直接将 HTML 转换为 Markdown. 解析后的markdown文本, 差强人意, 完全取决于富文本的格式.(可以尝试使用大模型 reader-lm-v2 这个转换效果好)
 
 - Lite 笔记（lite/markdown）
    - 通过 BeautifulSoup 库解析 HTML 内容
