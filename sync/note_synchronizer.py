@@ -96,7 +96,7 @@ class NoteSynchronizer:
     def _sync_single_note_to_local(self, record):
         log.info(f'开始执行同步 doc_guid: {record["doc_guid"]} title: {record["title"]}')
         # 根据笔记的类型，获取不同类型的解析器
-        parser = NoteParserFactory.create_parser(record['type'])
+        parser = NoteParserFactory.create_parser(record['type'], record['title'])
 
         try:
             # 获取笔记的原始内容
