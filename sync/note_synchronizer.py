@@ -44,10 +44,17 @@ class NoteSynchronizer:
             detail_resp = self.api_client.get_note_detail(record['doc_guid'])
             resources = detail_resp['resources']
             log.info(f'resources: {resources}')
-            # resources 是一个list, list 是对象,包含属性name和url, 需要循环判断 not_in_local_img 是否存在
-            for resource in resources:
-                if resource['name'] in not_in_local_img:
-                    FileManager.download_img_from_url(record, resource['name'], resource['url'])
+
+            # resources 是一个list, 存在属性name和url
+            resources_map = {res['name']: res['url'] for res in resources if 'name' in res and 'url' in res}
+            log.info(f'Built resources_map with {len(resources_map)} items.')
+
+            for img_name in not_in_local_img:
+                if img_name in resources_map:
+                    img_url = resources_map[img_name]
+                    FileManager.download_img_from_url(record, img_name, img_url)
+                else:
+                    log.warning(f"Image '{img_name}' needed but not found in resources list for doc {record.get('doc_guid', 'N/A')}")
         else:
             # 如果是协作笔记, 需要循环获取所有图片的上传地址
             token = self.api_client.get_collaboration_token(record['doc_guid'])
