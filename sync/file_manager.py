@@ -50,11 +50,11 @@ class FileManager:
     @staticmethod
     def get_img_directory(record):
         """
-        获取图片保存目录
-        :param record:
+        获取图片保存目录: 当前笔记同级目录下 ./images/
+        :param record: 笔记同步记录
         :return:
         """
-        return os.path.join("output", "export_image", record['category'].strip("/").replace("/", os.path.sep), record['title'])
+        return os.path.join(record['category'].strip("/").replace("/", os.path.sep), "images")
 
     @staticmethod
     def image_file_is_not_exist(record, img_file_name):

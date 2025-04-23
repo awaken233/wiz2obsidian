@@ -1,10 +1,11 @@
 from log import log
-from sync.note_parser_factory import NoteParserFactory
-from sync.image_uploader import ImageUploader
-from sync.file_manager import FileManager
 from sync.database import Database
-from sync.note_property import NoteProperty
+from sync.file_manager import FileManager
+from sync.image_handler import ImageHandler
+from sync.image_uploader import ImageUploader
 from sync.note import Note
+from sync.note_parser_factory import NoteParserFactory
+from sync.note_property import NoteProperty
 from sync.parsed_note import ParsedNote
 
 
@@ -12,7 +13,7 @@ class NoteSynchronizer:
     # 同步的步长
     PAGE_SIZE = 200
 
-    def __init__(self, api_client, db):
+    def __init__(self, api_client, db: Database):
         self.api_client = api_client
         self.db = db
 
@@ -70,13 +71,12 @@ class NoteSynchronizer:
         ret_map = {}
         # 如果图片不存在则下载图片
         self._download_img_if_absent(record, need_upload_images)
-        uploader = ImageUploader()
         for img_file_name in need_upload_images:
             # 插入上传记录
             self.db.create_image_upload_record(record['doc_guid'], img_file_name)
             try:
                 # 获取图片上传地址
-                uploaded_url = uploader.upload(record, img_file_name)
+                uploaded_url = ImageHandler.handle(record, img_file_name)
                 # 更新上传记录的状态
                 self.db.update_img_sync_status(record['doc_guid'], img_file_name, sync_status=True, fail_reason='', upload_url=uploaded_url)
                 # 将图片上传地址添加到 ret_map 中
