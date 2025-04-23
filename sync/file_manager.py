@@ -54,7 +54,7 @@ class FileManager:
         :param record: 笔记同步记录
         :return:
         """
-        return os.path.join(record['category'].strip("/").replace("/", os.path.sep), "images")
+        return os.path.join("output", "note",record['category'].strip("/").replace("/", os.path.sep), "images")
 
     @staticmethod
     def image_file_is_not_exist(record, img_file_name):
