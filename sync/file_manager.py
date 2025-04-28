@@ -1,9 +1,24 @@
 import os
+import sys
 from log import log
 import requests
 
 
 class FileManager:
+    # 应用程序根目录缓存
+    _app_root = None
+
+    @staticmethod
+    def get_app_root():
+        """获取应用程序根目录"""
+        if FileManager._app_root is None:
+            if getattr(sys, "frozen", False):
+                # 如果是打包后的可执行文件
+                FileManager._app_root = os.path.dirname(sys.executable)
+            else:
+                # 如果是开发环境
+                FileManager._app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        return FileManager._app_root
 
     @staticmethod
     def _create_directory(directory_path):
@@ -12,7 +27,7 @@ class FileManager:
     @staticmethod
     def _write_file(directory_path, file_name, content):
         file_path = os.path.join(directory_path, file_name)
-        with open(file_path, "w") as file:
+        with open(file_path, "w", encoding='utf-8') as file:
             file.write(content)
 
     @staticmethod
@@ -30,8 +45,9 @@ class FileManager:
         :param content:
         :return:
         """
-        # 当前脚本地址join output/note+category
-        output_directory = os.path.join("output", "note", category.strip("/").replace("/", os.path.sep))
+        # 使用绝对路径
+        app_root = FileManager.get_app_root()
+        output_directory = os.path.join(app_root, "output", "note", category.strip("/").replace("/", os.path.sep))
         FileManager._create_directory(output_directory)
 
         # 如果 title 是以 .md 结尾, 新文件的文件名无序添加 .md
@@ -43,7 +59,8 @@ class FileManager:
     # 保存图片到本地
     @staticmethod
     def save_image_to_file(category, title, file_name, content):
-        output_directory = os.path.join("output", "export_image", category.strip("/").replace("/", os.path.sep), title)
+        app_root = FileManager.get_app_root()
+        output_directory = os.path.join(app_root, "output", "export_image", category.strip("/").replace("/", os.path.sep), title)
         FileManager._create_directory(output_directory)
         FileManager._write_bfile(output_directory, file_name, content)
 
@@ -54,7 +71,8 @@ class FileManager:
         :param record: 笔记同步记录
         :return:
         """
-        return os.path.join("output", "note",record['category'].strip("/").replace("/", os.path.sep), "images")
+        app_root = FileManager.get_app_root()
+        return os.path.join(app_root, "output", "note", record['category'].strip("/").replace("/", os.path.sep), "images")
 
     @staticmethod
     def image_file_is_not_exist(record, img_file_name):

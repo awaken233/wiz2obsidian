@@ -9,7 +9,6 @@ a = Analysis(
         ('conf', 'conf'),
         ('sync', 'sync'),
         ('.env', '.'),
-        ('output', 'output'),
     ],
     hiddenimports=[
         'sync.note_synchronizer',
