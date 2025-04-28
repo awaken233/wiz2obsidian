@@ -18,7 +18,6 @@ handlers:
     backupCount: 30
     encoding: utf-8
     delay: false
-    suffix: '%Y-%m-%d'
 
 root:
   level: DEBUG
