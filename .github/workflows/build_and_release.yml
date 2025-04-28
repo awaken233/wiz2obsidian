@@ -1,0 +1,160 @@
+name: Build and Release Executables
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger on tags like v1.0.0, v1.2, etc.
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9' # Specify Python version used in the project
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+        pip install -r requirements.txt
+
+    - name: Build Windows EXE
+      run: |
+        pyinstaller wiz2obsidian.spec # Use the project's spec file
+
+    - name: Upload Windows artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: wiz2obsidian-Windows # Artifact name
+        path: dist/wiz2obsidian.exe # Path to the executable
+
+  build-macos-arm64:
+    # Note: GitHub Actions macos-latest runners are typically Intel.
+    # This build might produce an Intel or Universal binary unless specific steps are taken.
+    # For true ARM64, an ARM runner might be needed. Following example structure for now.
+    runs-on: macos-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+        pip install -r requirements.txt
+
+    - name: Build MacOS ARM executable
+      run: |
+        pyinstaller wiz2obsidian.spec
+
+    - name: Upload MacOS ARM artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: wiz2obsidian-MacOS-ARM64
+        path: dist/wiz2obsidian
+
+  build-macos-intel:
+    runs-on: macos-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies (Intel Arch)
+      run: |
+        # Force installation using x86_64 architecture
+        arch -x86_64 python -m pip install --upgrade pip
+        arch -x86_64 python -m pip install pyinstaller
+        arch -x86_64 python -m pip install -r requirements.txt
+
+    - name: Build MacOS Intel executable
+      env:
+        # Pass TARGET_ARCH to pyinstaller via spec file environment variable lookup
+        TARGET_ARCH: 'x86_64'
+      run: |
+        # Force pyinstaller execution using x86_64 architecture
+        arch -x86_64 python -m PyInstaller wiz2obsidian.spec
+
+    - name: Upload MacOS Intel artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: wiz2obsidian-MacOS-Intel
+        path: dist/wiz2obsidian
+
+  build-linux:
+    runs-on: ubuntu-latest # Use latest Ubuntu
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+        pip install -r requirements.txt
+
+    - name: Build Linux executable
+      run: |
+        pyinstaller wiz2obsidian.spec
+
+    - name: Upload Linux artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: wiz2obsidian-Linux
+        path: dist/wiz2obsidian
+
+  create-release:
+    # This job runs only if all build jobs succeed and the trigger was a tag push
+    needs: [build-windows, build-macos-arm64, build-macos-intel, build-linux]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/') # Ensure this runs only for tags
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts # Download all artifacts to the 'artifacts' directory
+
+      - name: Create release archives
+        run: |
+          # Create zip files containing the artifact directories
+          zip -r artifacts/wiz2obsidian-Windows.zip artifacts/wiz2obsidian-Windows/
+          zip -r artifacts/wiz2obsidian-MacOS-ARM64.zip artifacts/wiz2obsidian-MacOS-ARM64/
+          zip -r artifacts/wiz2obsidian-MacOS-Intel.zip artifacts/wiz2obsidian-MacOS-Intel/
+          zip -r artifacts/wiz2obsidian-Linux.zip artifacts/wiz2obsidian-Linux/
+          ls -R artifacts # List contents for verification
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2 # Use v2 for latest features
+        with:
+          # Optional: Draft releases until manually published
+          # draft: true
+          # Optional: Mark as pre-release
+          # prerelease: contains(github.ref, '-beta') || contains(github.ref, '-rc')
+          files: |
+            artifacts/wiz2obsidian-Windows.zip
+            artifacts/wiz2obsidian-MacOS-ARM64.zip
+            artifacts/wiz2obsidian-MacOS-Intel.zip
+            artifacts/wiz2obsidian-Linux.zip
+        env:
+          # GITHUB_TOKEN is automatically provided by GitHub Actions
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
