@@ -1,7 +1,25 @@
-import os # 导入 os
-from dotenv import load_dotenv # 导入 load_dotenv
+import os
+import sys
 
-load_dotenv() # 加载 .env 文件
+from dotenv import load_dotenv # 导入 os
+from log import log
+
+# 获取应用程序的根目录路径
+if getattr(sys, "frozen", False):
+    # 如果是打包后的可执行文件
+    application_path = os.path.dirname(sys.executable)
+else:
+    # 如果是开发环境
+    application_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# 指定 .env 文件的路径
+dotenv_path = os.path.join(application_path, ".env")
+
+if not os.path.exists(dotenv_path):
+    raise FileNotFoundError(f"环境变量文件 {dotenv_path} 不存在")
+
+log.info(f"环境变量文件路径: {dotenv_path}")
+load_dotenv(dotenv_path)
 
 class Config:
 

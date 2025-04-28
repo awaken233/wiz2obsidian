@@ -4,9 +4,9 @@
 
 ## 前置准备
 
-- 启动picgo(version >= 2.1.0), 并配置picgo图床,测试上传成功
 - 将所有加密笔记取消加密
-- `conf/config.yaml` 配置位置笔记的用户名和密码
+- 在项目根目录创建 `.env` 文件，配置为知笔记的用户名和密码：
+
 
 导包, 运行 main.py 即可.
 ## 注意
@@ -120,3 +120,56 @@
 [GitHub - WizTeam/wiz-editor](https://github.com/WizTeam/wiz-editor)
 
 [为知笔记API文档](https://www.wiz.cn/wapp/pages/book/bb8f0f10-48ca-11ea-b27a-ef51fb9d4bb4/475c9ef0-4e1a-11ea-8f5c-a7618da01da2)
+
+## 打包应用程序
+
+本项目支持使用 PyInstaller 将应用程序打包为可执行文件，方便非开发人员使用。
+
+### 准备环境
+
+1. 确保已安装所有依赖：
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. 确保根目录中存在 `.env` 文件，其中包含必要的配置信息（见前置准备部分）。这个文件会被包含在打包的应用中。
+
+3. 打包应用程序有两种方式：
+
+#### 方式一：使用打包脚本
+
+直接运行打包脚本：
+```bash
+python build.py
+```
+
+脚本会自动使用预配置的 spec 文件进行打包，完成后会在 `dist` 目录下生成可执行文件。
+
+#### 方式二：手动使用 PyInstaller
+
+如果需要更多控制，可以手动运行 PyInstaller：
+```bash
+pyinstaller --clean wiz2obsidian.spec
+```
+
+### 打包结果
+
+打包完成后，可执行文件将位于 `dist` 目录：
+- Windows: `dist/wiz2obsidian.exe`
+- macOS: `dist/wiz2obsidian`
+- Linux: `dist/wiz2obsidian`
+
+### 自定义打包配置
+
+如需修改打包配置，请编辑 `wiz2obsidian.spec` 文件，常见配置项包括：
+- 应用程序名称
+- 是否显示控制台窗口
+- 图标设置
+- 包含的模块和文件
+
+更多 PyInstaller 配置信息，请参考[官方文档](https://pyinstaller.org/en/stable/spec-files.html)。
+
+### 注意事项
+
+- 打包的应用程序会使用应用程序所在目录下的 `.env` 文件，确保在分发应用时包含正确配置的 `.env` 文件或指导用户如何创建该文件。
+- 如果打包后的应用无法找到配置文件，请检查 `.env` 文件是否存在于应用程序所在目录中。

@@ -5,3 +5,4 @@ requests==2.31.0
 urllib3==2.2.1
 websocket-client==1.7.0
 python-dotenv
+pyinstaller==6.5.0
