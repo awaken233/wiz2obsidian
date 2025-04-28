@@ -47,8 +47,9 @@
 
 ### 如何处理笔记中的图片
 
-程序将笔记中的图片下载到本地, 通过picgo http api上传图片并替换图片地址.(请启动picgo, 并配置picgo图床,测试上传成功)
-[高级技巧 | PicGo](https://picgo.github.io/PicGo-Doc/zh/guide/advance.html#picgo-server%E7%9A%84%E4%BD%BF%E7%94%A8)
+程序将笔记中的图片下载到本地, 放到笔记同级目录中 `./images` 目录中.
+
+之前导出方案使用 picgo 配置图床. 考虑到上手难度太高, 遂直接放弃, 导出到本地, 用户自行处理
 
 ### 如何处理笔记的tag
 
@@ -99,15 +100,6 @@
 - 配置导出参数, 可以更好的定制化导出
 
 
-## 参考文章
-
-[[WizNote 为知笔记 macOS 本地文件夹分析 | ZRONG's BLOG](https://blog.zengrong.net/post/analysis-of-wiznote/)
-
-[server-architecture.md](https://github.com/WizTeam/wiz-editor/blob/main/docs/zh-CN/server-architecture.md)
-
-[GitHub - WizTeam/wiz-editor](https://github.com/WizTeam/wiz-editor)
-
-[为知笔记API文档](https://www.wiz.cn/wapp/pages/book/bb8f0f10-48ca-11ea-b27a-ef51fb9d4bb4/475c9ef0-4e1a-11ea-8f5c-a7618da01da2)
 
 ## 打包应用程序
 
@@ -144,3 +136,14 @@ pyinstaller --clean wiz2obsidian.spec
 - Windows: `dist/wiz2obsidian.exe`
 - macOS: `dist/wiz2obsidian`
 - Linux: `dist/wiz2obsidian`
+
+
+## 参考文章
+
+[WizNote 为知笔记 macOS 本地文件夹分析 | ZRONG's BLOG](https://blog.zengrong.net/post/analysis-of-wiznote/)
+
+[server-architecture.md](https://github.com/WizTeam/wiz-editor/blob/main/docs/zh-CN/server-architecture.md)
+
+[GitHub - WizTeam/wiz-editor](https://github.com/WizTeam/wiz-editor)
+
+[为知笔记API文档](https://www.wiz.cn/wapp/pages/book/bb8f0f10-48ca-11ea-b27a-ef51fb9d4bb4/475c9ef0-4e1a-11ea-8f5c-a7618da01da2)
