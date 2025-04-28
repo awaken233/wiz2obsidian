@@ -23,7 +23,8 @@ a = Analysis(
         'requests',
         'urllib3',
         'websocket',
-        'dotenv'
+        'dotenv',
+        'logging.handlers',
     ],
     hookspath=[],
     hooksconfig={},
