@@ -2,3 +2,6 @@ output/db
 output/export_image
 output/log
 output/note
+# PyInstaller
+build/
+dist/

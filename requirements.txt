@@ -1,13 +1,8 @@
 beautifulsoup4==4.12.3
-certifi==2024.2.2
-charset-normalizer==3.3.2
 html2text==2024.2.26
-idna==3.6
-importlib-metadata==7.0.1
-Markdown==3.5.2
 PyYAML==6.0.1
 requests==2.31.0
-soupsieve==2.5
 urllib3==2.2.1
 websocket-client==1.7.0
-zipp==3.17.0
+python-dotenv
+pyinstaller==6.5.0

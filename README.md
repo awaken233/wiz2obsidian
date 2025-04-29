@@ -4,35 +4,32 @@
 
 ## 前置准备
 
-- 启动picgo(version >= 2.1.0), 并配置picgo图床,测试上传成功
 - 将所有加密笔记取消加密
-- `conf/config.yaml` 配置位置笔记的用户名和密码
+- [releases 页面](https://github.com/awaken233/wiz2obsidian/releases)下载对应系统的可执行文件
+- 在可执行文件同级目录下创建 `.env` 文件，配置为知笔记的用户名和密码, 参考: [.env.example](.env.example)
+- 运行可执行文件
 
-导包, 运行 main.py 即可.
+## 问题
+
+- mac 运行可执行文件出现: `无法打开“wiz2obsidian”，因为Apple无法检查其是否包含恶意软件`, 错误提示
+
+解决方案: 系统设置 -> 隐私与安全性 -> 在安全性栏目下点击`仍然允许`运行 wiz2obsidian
+
 ## 注意
 
 - 笔记标题和目录名不要出现 `/`等和文件分隔符冲突的特殊字符, 无法导出
-- 我 picgo 配置的是github图片,不允许出现同名文件名, 会导致上传错误, 导致部分图片上传错误
 - 为知笔记应用不要打开协作笔记tab页, 否则影响程序读取读取该笔记的数据.
 
 
-## 项目结构
+## 输出内容
 
 ```
-├── conf
-│   ├── conf.yaml  // 配置文件, 需要配置帐号密码
-│   └── logging.yaml // 日志配置
-├── log.py
-├── main.py // 主程序入口
 ├── output
 │   ├── db
 │   │   └── sync.db // sqlite3 记录笔记同步记录和笔记图片同步记录
-│   ├── export_image // 笔记图片, 目录结构为: 笔记的文件夹目录/笔记名/笔记下所有图片
 │   ├── note         // 所有导出 markdown 笔记
 │   └── log
 │       └── log.log // 日志
-├── sync // 同步程序
-└── test // 测试相关
 ```
 
 
@@ -56,8 +53,9 @@
 
 ### 如何处理笔记中的图片
 
-程序将笔记中的图片下载到本地, 通过picgo http api上传图片并替换图片地址.(请启动picgo, 并配置picgo图床,测试上传成功)
-[高级技巧 | PicGo](https://picgo.github.io/PicGo-Doc/zh/guide/advance.html#picgo-server%E7%9A%84%E4%BD%BF%E7%94%A8)
+程序将笔记中的图片下载到本地, 放到笔记同级目录中 `./images` 目录中.
+
+之前导出方案使用 picgo 配置图床. 考虑到上手难度太高, 遂直接放弃, 导出到本地, 用户自行处理
 
 ### 如何处理笔记的tag
 
@@ -105,15 +103,50 @@
 
 待完善之处
 
-- 程序可以打包成app, exe, 让不懂程序的人也能轻松使用
 - 配置导出参数, 可以更好的定制化导出
-- 上传到图床, 图片名不能相同. (目标图片名可以用时间戳, 同步笔记图片表记录目标文件名,  导出的时候替换目标文件名)
-- 公式, 流程图解析可能存在问题.
+
+
+
+## 打包应用程序
+
+本项目支持使用 PyInstaller 将应用程序打包为可执行文件，方便非开发人员使用。
+
+### 准备环境
+
+1. 确保已安装所有依赖：
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. 打包应用程序有两种方式：
+
+#### 方式一：使用打包脚本
+
+直接运行打包脚本：
+```bash
+python build.py
+```
+
+脚本会自动使用预配置的 spec 文件进行打包，完成后会在 `dist` 目录下生成可执行文件。
+
+#### 方式二：手动使用 PyInstaller
+
+如果需要更多控制，可以手动运行 PyInstaller：
+```bash
+pyinstaller --clean wiz2obsidian.spec
+```
+
+### 打包结果
+
+打包完成后，可执行文件将位于 `dist` 目录：
+- Windows: `dist/wiz2obsidian.exe`
+- macOS: `dist/wiz2obsidian`
+- Linux: `dist/wiz2obsidian`
 
 
 ## 参考文章
 
-[[WizNote 为知笔记 macOS 本地文件夹分析 | ZRONG's BLOG](https://blog.zengrong.net/post/analysis-of-wiznote/)
+[WizNote 为知笔记 macOS 本地文件夹分析 | ZRONG's BLOG](https://blog.zengrong.net/post/analysis-of-wiznote/)
 
 [server-architecture.md](https://github.com/WizTeam/wiz-editor/blob/main/docs/zh-CN/server-architecture.md)
 

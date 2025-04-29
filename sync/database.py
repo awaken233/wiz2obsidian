@@ -3,6 +3,7 @@ from log import log
 import os
 import json
 import datetime
+import sys
 
 
 class Database:
@@ -13,8 +14,22 @@ class Database:
 
     def __enter__(self):
         log.info(os.getcwd())
+        # 获取应用程序的根目录路径
+        if getattr(sys, "frozen", False):
+            # 如果是打包后的可执行文件
+            application_path = os.path.dirname(sys.executable)
+        else:
+            # 如果是开发环境
+            application_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            
+        # 确保数据库目录存在
+        db_dir = os.path.join(application_path, 'output', 'db')
+        os.makedirs(db_dir, exist_ok=True)
+        
         # 连接数据库并返回实例以供使用
-        self.conn = sqlite3.connect('output/db/sync.db')
+        db_path = os.path.join(db_dir, 'sync.db')
+        log.info(f"数据库路径: {db_path}")
+        self.conn = sqlite3.connect(db_path)
         self.conn.set_trace_callback(Database.trace_callback)
         return self
 

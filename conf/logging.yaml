@@ -9,16 +9,16 @@ handlers:
     formatter: simple
     stream: ext://sys.stdout
   file:
-    class: logging.FileHandler
+    class: logging.handlers.TimedRotatingFileHandler
     level: DEBUG
     formatter: simple
     filename: output/log/log.log
+    when: midnight
+    interval: 1
+    backupCount: 30
+    encoding: utf-8
+    delay: false
 
-loggers:
-  mylogger:
-    level: DEBUG
-    handlers: [ console ]
-    propagate: no
 root:
   level: DEBUG
-  handlers: [ console ]
+  handlers: [console, file]
