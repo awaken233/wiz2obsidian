@@ -29,8 +29,7 @@ class NoteParserFactory:
         """
         if Note.is_collaboration_note(note_type):
             return CollaborationNoteParser()
-        # 或者 title 以 .md 结尾
-        elif note_type == 'lite/markdown' or title.endswith('.md'):
+        elif note_type == 'lite/markdown':
             return LiteNoteParser()
         else:
             return HtmlNoteParser()
