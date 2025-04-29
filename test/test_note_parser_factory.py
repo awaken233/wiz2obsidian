@@ -1,5 +1,4 @@
 import json
-import yaml
 import unittest
 from sync.wiz_open_api import WizOpenApi
 from log import log
@@ -8,25 +7,24 @@ import re
 from sync.note_property import NoteProperty
 from sync.database import Database
 from sync.note_synchronizer import NoteSynchronizer
+from sync.config import Config
 
 
 class TestNoteParserFactory(unittest.TestCase):
 
     def setUp(self):
         # 初始化WizOpenApi实例， 如果有初始化参数需要传入
-        # 从配置文件 conf/conf.yaml 中读取配置
-        with open('conf/conf.yaml', 'r') as f:
-            config = yaml.safe_load(f.read())
-        self.wiz_open_api = WizOpenApi(config['user_id'], config['password'])
+        config = Config.load()
+        self.wiz_open_api = WizOpenApi(config)
 
-    # # 测试解析html笔记的内容
-    # def test_parse_html_note(self):
-    #     parser = NoteParserFactory.create_parser('document')
-    #     doc_guid = '0915c9c1-323e-477d-91a2-5806e8ef6466'
-    #     origin_content = self.wiz_open_api.get_note_detail(doc_guid)['html']
-    #     log.info(f'原始内容: {origin_content}')
-    #     parsed_note = parser.parse_content(origin_content)
-    #     log.info(f'解析后的内容: {parsed_note}')
+    # 测试解析html笔记的内容
+    def test_parse_html_note(self):
+        parser = NoteParserFactory.create_parser('document', 'html')
+        doc_guid = 'bdfd068c-b12f-4ae4-ae68-8b6ba6e739ad'
+        origin_content = self.wiz_open_api.get_note_detail(doc_guid)['html']
+        log.info(f'原始内容: {origin_content}')
+        parsed_note = parser.parse_content(origin_content)
+        log.info(f'解析后的内容: {parsed_note}')
 
 
     # # 测试解析 lite 笔记的内容
@@ -96,9 +94,9 @@ class TestNoteParserFactory(unittest.TestCase):
     #     np = NoteProperty(['category1', 'category2'], '2022-10-05 15:30:00', '2022-10-06 12:00:00', '中文')
     #     print(np.to_string())
 
-    # 测试同步指定笔记
-    def test_sync_note(self):
-        with Database() as db:
-            record = db.select_by_guid('1f570483-6266-4d7a-88df-b256f352da9e')
-            syncer = NoteSynchronizer(self.wiz_open_api, db)
-            syncer._sync_single_note_to_local(record)
+    # # 测试同步指定笔记
+    # def test_sync_note(self):
+    #     with Database() as db:
+    #         record = db.select_by_guid('1f570483-6266-4d7a-88df-b256f352da9e')
+    #         syncer = NoteSynchronizer(self.wiz_open_api, db)
+    #         syncer._sync_single_note_to_local(record)
