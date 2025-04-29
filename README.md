@@ -5,13 +5,13 @@
 ## 前置准备
 
 - 将所有加密笔记取消加密
-- releases 页面下载对应系统的可执行文件
+- [releases 页面](https://github.com/awaken233/wiz2obsidian/releases)下载对应系统的可执行文件
 - 在可执行文件同级目录下创建 `.env` 文件，配置为知笔记的用户名和密码, 参考: [.env.example](.env.example)
 - 运行可执行文件
 
 ## 问题
 
-- mac 运行可执行文件出现: 无法打开“wiz2obsidian”，因为Apple无法检查其是否包含恶意软件。
+- mac 运行可执行文件出现: `无法打开“wiz2obsidian”，因为Apple无法检查其是否包含恶意软件`, 错误提示
 
 解决方案: 系统设置 -> 隐私与安全性 -> 在安全性栏目下点击`仍然允许`运行 wiz2obsidian
 
