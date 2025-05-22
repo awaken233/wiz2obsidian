@@ -185,6 +185,9 @@ class BlockTextConverter:
                 return BlockTextConverter.handle_bold(text_dict)
             elif attributes.get('style-strikethrough'):
                 return BlockTextConverter.handle_strikethrough(text_dict)
+            # 处理文字颜色和背景颜色.
+            elif any(key.startswith("style-color-") or key.startswith("style-bg-color-") for key in attributes.keys()):
+                return BlockTextConverter.handle_highlight(text_dict)
             else:
                 return BlockTextConverter.handle_text(text_dict)
         else:
@@ -213,6 +216,10 @@ class BlockTextConverter:
     @classmethod
     def handle_strikethrough(cls, text_dict):
         return f'~~{text_dict["insert"]}~~'
+
+    @classmethod
+    def handle_highlight(cls, text_dict):
+        return f'=={text_dict["insert"]}=='
 
 
 class MarkdownConverter:
