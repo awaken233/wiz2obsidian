@@ -1,1 +1,612 @@
-{"data":{"v":617,"data":{"blocks":[{"id":"_kpL39Rss","type":"text","text":[{"insert":"笔记分析"}],"heading":1},{"text":[{"insert":"标题三 33"}],"id":"_Hwo4C707","type":"text","heading":3},{"text":[{"insert":"标题四  44"}],"id":"_hFG5Yf8w","type":"text","heading":4},{"text":[{"attributes":{"link":"http://www.baidu.com/","observeRemove":"i-1705373935586-1"},"insert":"标题链接"},{"insert":"1111"}],"id":"_weyOkZ13","type":"text","heading":5},{"text":[{"insert":"百链接无序列表","attributes":{"link":"http://www.baidu.com/","observeRemove":"i-1705373935586-1"}}],"id":"_Ttn1LLm3","type":"list","start":1,"level":1,"ordered":true,"groupId":"_YHgg_C8S"},{"text":[{"insert":"第二个"}],"id":"_k_UtzK0E","type":"list","start":2,"groupId":"_YHgg_C8S","level":1,"ordered":true,"quoted":false},{"text":[],"id":"_F4pimgYW","type":"text"},{"text":[{"attributes":{"link":"http://www.baidu.com"},"insert":"百度"}],"id":"_QGxedpMn","type":"text"},{"text":[{"insert":"段落文字中包含"},{"attributes":{"link":"http://www.baidu.com/"},"insert":"百度链接"},{"insert":"。这种情况如何处理"}],"id":"_9J3HEDll","type":"text"},{"text":[{"insert":"引用"}],"id":"_kW6NAsKw","type":"text","quoted":true},{"text":[],"id":"_5ytk4ztK","type":"code","children":["_KpDgt6c_"],"language":"XML"},{"text":[],"id":"_oRtKjyZZ","type":"table","chart":false,"cols":2,"colsWidth":[100,100],"hasColTitle":false,"hasRowTitle":false,"isStripeStyle":false,"noBorder":false,"quoted":false,"children":["_7KrKGxTp","_oJBIzz2m","_bR8uX0dR","_G3yWPqkS"],"rows":2},{"id":"_vEuO_Bz8","type":"embed","embedType":"image","align":"center","quoted":false,"embedData":{"src":"cXuKjvSNNxWugTRtjQUHUNSv1sLxm8ed3bleFBLz7-E.png","fileName":"image.png","fileSize":5805,"fileType":"image/png","previewType":"card"}},{"text":[{"attributes":{"style-code":true},"insert":"我是行内代码块"},{"insert":" 我是其他文字"}],"id":"_AvVUpRQL","type":"text"},{"text":[],"id":"_iDCa8lxx","type":"text"},{"text":[{"insert":"无序列表 1"}],"id":"_slWgSxP8","type":"list","start":1,"level":1,"ordered":false,"groupId":"_zhSDTZcT"},{"text":[{"insert":"无需列表 1"}],"id":"_78py3kro","type":"list","start":2,"groupId":"_zhSDTZcT","level":1,"ordered":false,"quoted":false},{"text":[],"id":"_qrNAxxk_","type":"text"},{"text":[{"insert":"有序列表2"}],"id":"_Cz5Vcu_M","type":"list","start":1,"level":1,"ordered":true,"groupId":"_JYwto7KY"},{"text":[{"insert":"有序列表 2"}],"id":"_aKCYXKrh","type":"list","start":2,"groupId":"_JYwto7KY","level":1,"ordered":true,"quoted":false},{"text":[{"insert":"我是一个段落，我是其中的"},{"attributes":{"style-italic":true},"insert":"斜体"},{"insert":"，我是其中的"},{"attributes":{"style-bold":true},"insert":"粗体"},{"insert":"，我是其中的"},{"attributes":{"style-strikethrough":true},"insert":"删除线, "},{"insert":"我是其中的下划线，我是"},{"insert":"高亮","attributes":{"style-bg-color-2":true}},{"insert":"。"}],"id":"_Zx1dIkvk","type":"text"},{"text":[],"id":"_BHZ8OKJH","type":"text"},{"text":[{"insert":"待办事项 1"}],"id":"_3oi9VTfF","type":"list","start":1,"level":1,"ordered":false,"groupId":"_MnVHU8iW","checkbox":"unchecked"},{"text":[{"insert":"已完成的事项"}],"id":"_5zkXKCaB","type":"list","start":2,"groupId":"_MnVHU8iW","level":1,"ordered":false,"quoted":false,"checkbox":"checked"},{"text":[],"id":"_0MCy96a5","type":"text"}],"comments":{},"meta":{"version":617,"updatedBy":{"userId":"405d1ff0-11d3-45f9-a638-afb1815af374","displayName":"evtok"},"ctime":1704118303173,"mtime":1710747227801},"authors":["405d1ff0-11d3-45f9-a638-afb1815af374"],"commentators":[],"_KpDgt6c_":[{"text":[{"insert":"代码块"}],"id":"_WoizYWZS","type":"code-line"}],"_02eBvwy4":[{"text":[],"id":"_5QsyQslg","type":"text"}],"_1bvAvq2F":[{"text":[],"id":"_dWBMS2O6","type":"text"}],"_7KrKGxTp":[{"text":[{"insert":"表头 1"}],"id":"_eJQ28fkr","type":"text"}],"_9SLBwgCj":[{"text":[],"id":"_DdfnBlxu","type":"text","quoted":false}],"_C4NOceox":[{"text":[],"id":"_Vq59rxrd","type":"text"}],"_Ff_ecsfP":[{"text":[],"id":"_Vfs5R9un","type":"text"}],"_G3yWPqkS":[{"text":[{"insert":"数据 2"}],"id":"_1rCMit23","type":"text"}],"_Jwia4Z1r":[{"text":[],"id":"_GZG075t9","type":"text"}],"_Qr6gOAXf":[{"text":[],"id":"_0e3aqJdb","type":"text"}],"_Sdr17q8g":[{"text":[],"id":"_Fj89BRaL","type":"text"}],"_V7x190FD":[{"text":[],"id":"_g9SclwEC","type":"text"}],"_bR8uX0dR":[{"text":[{"insert":"数据 1"}],"id":"_DAMrOCbn","type":"text"}],"_g171C1uV":[{"text":[],"id":"_WZ1JIMGy","type":"text"}],"_hl6pDSuI":[{"text":[],"id":"_l7OnopF8","type":"text"}],"_kJPMc_66":[{"text":[],"id":"_HJacr_4M","type":"text"}],"_oJBIzz2m":[{"text":[{"insert":"表头 2"}],"id":"_aPh6Vmrv","type":"text"}],"_XPS54YpC":[{"text":[{"insert":"![RUNOOB 图标](https://static.jyshare.com/images/runoob-logo.png)"}],"id":"_NKFhMN1k","type":"code-line"},{"text":[],"id":"_N3OIKKom","type":"code-line","quoted":false}]},"type":"http://sharejs.org/types/JSONv1"},"a":"f","c":"b7a866b8-1126-4fd2-936a-a29aeb9b7de3","d":"dffe93ac-01d2-4add-8d12-ad0db0dc2188"}
+{
+    "data": {
+        "v": 736,
+        "data": {
+            "blocks": [
+                {
+                    "id": "_kpL39Rss",
+                    "type": "text",
+                    "text": [
+                        {
+                            "insert": "笔记分析"
+                        }
+                    ],
+                    "heading": 1
+                },
+                {
+                    "text": [
+                        {
+                            "insert": "标题三 33"
+                        }
+                    ],
+                    "id": "_Hwo4C707",
+                    "type": "text",
+                    "heading": 3
+                },
+                {
+                    "text": [
+                        {
+                            "insert": "标题四  44"
+                        }
+                    ],
+                    "id": "_hFG5Yf8w",
+                    "type": "text",
+                    "heading": 4
+                },
+                {
+                    "text": [
+                        {
+                            "attributes": {
+                                "link": "http://www.baidu.com/",
+                                "observeRemove": "i-1705373935586-1"
+                            },
+                            "insert": "标题链接"
+                        },
+                        {
+                            "insert": "1111"
+                        }
+                    ],
+                    "id": "_weyOkZ13",
+                    "type": "text",
+                    "heading": 5
+                },
+                {
+                    "text": [
+                        {
+                            "insert": "百链接无序列表",
+                            "attributes": {
+                                "link": "http://www.baidu.com/",
+                                "observeRemove": "i-1705373935586-1"
+                            }
+                        }
+                    ],
+                    "id": "_Ttn1LLm3",
+                    "type": "list",
+                    "start": 1,
+                    "level": 1,
+                    "ordered": true,
+                    "groupId": "_YHgg_C8S"
+                },
+                {
+                    "text": [
+                        {
+                            "insert": "第二个"
+                        }
+                    ],
+                    "id": "_k_UtzK0E",
+                    "type": "list",
+                    "start": 2,
+                    "groupId": "_YHgg_C8S",
+                    "level": 1,
+                    "ordered": true,
+                    "quoted": false
+                },
+                {
+                    "text": [],
+                    "id": "_F4pimgYW",
+                    "type": "text"
+                },
+                {
+                    "text": [
+                        {
+                            "attributes": {
+                                "link": "http://www.baidu.com"
+                            },
+                            "insert": "百度"
+                        }
+                    ],
+                    "id": "_QGxedpMn",
+                    "type": "text"
+                },
+                {
+                    "text": [
+                        {
+                            "insert": "段落文字中包含"
+                        },
+                        {
+                            "attributes": {
+                                "link": "http://www.baidu.com/"
+                            },
+                            "insert": "百度链接"
+                        },
+                        {
+                            "insert": "。这种情况如何处理"
+                        }
+                    ],
+                    "id": "_9J3HEDll",
+                    "type": "text"
+                },
+                {
+                    "text": [
+                        {
+                            "insert": "引用"
+                        }
+                    ],
+                    "id": "_kW6NAsKw",
+                    "type": "text",
+                    "quoted": true
+                },
+                {
+                    "text": [],
+                    "id": "_5ytk4ztK",
+                    "type": "code",
+                    "children": [
+                        "_KpDgt6c_"
+                    ],
+                    "language": "XML"
+                },
+                {
+                    "text": [],
+                    "id": "_oRtKjyZZ",
+                    "type": "table",
+                    "chart": false,
+                    "cols": 2,
+                    "colsWidth": [
+                        100,
+                        100
+                    ],
+                    "hasColTitle": false,
+                    "hasRowTitle": false,
+                    "isStripeStyle": false,
+                    "noBorder": false,
+                    "quoted": false,
+                    "children": [
+                        "_7KrKGxTp",
+                        "_oJBIzz2m",
+                        "_bR8uX0dR",
+                        "_G3yWPqkS"
+                    ],
+                    "rows": 2
+                },
+                {
+                    "id": "_vEuO_Bz8",
+                    "type": "embed",
+                    "embedType": "image",
+                    "align": "center",
+                    "quoted": false,
+                    "embedData": {
+                        "src": "cXuKjvSNNxWugTRtjQUHUNSv1sLxm8ed3bleFBLz7-E.png",
+                        "fileName": "image.png",
+                        "fileSize": 5805,
+                        "fileType": "image/png",
+                        "previewType": "card"
+                    }
+                },
+                {
+                    "text": [
+                        {
+                            "attributes": {
+                                "style-code": true
+                            },
+                            "insert": "我是行内代码块"
+                        },
+                        {
+                            "insert": " 我是其他文字"
+                        }
+                    ],
+                    "id": "_AvVUpRQL",
+                    "type": "text"
+                },
+                {
+                    "text": [],
+                    "id": "_iDCa8lxx",
+                    "type": "text"
+                },
+                {
+                    "text": [
+                        {
+                            "insert": "无序列表 1"
+                        }
+                    ],
+                    "id": "_slWgSxP8",
+                    "type": "list",
+                    "start": 1,
+                    "level": 1,
+                    "ordered": false,
+                    "groupId": "_zhSDTZcT"
+                },
+                {
+                    "text": [
+                        {
+                            "insert": "无需列表 1"
+                        }
+                    ],
+                    "id": "_78py3kro",
+                    "type": "list",
+                    "start": 2,
+                    "groupId": "_zhSDTZcT",
+                    "level": 1,
+                    "ordered": false,
+                    "quoted": false
+                },
+                {
+                    "text": [],
+                    "id": "_qrNAxxk_",
+                    "type": "text"
+                },
+                {
+                    "text": [
+                        {
+                            "insert": "有序列表2"
+                        }
+                    ],
+                    "id": "_Cz5Vcu_M",
+                    "type": "list",
+                    "start": 1,
+                    "level": 1,
+                    "ordered": true,
+                    "groupId": "_JYwto7KY"
+                },
+                {
+                    "text": [
+                        {
+                            "insert": "有序列表 2"
+                        }
+                    ],
+                    "id": "_aKCYXKrh",
+                    "type": "list",
+                    "start": 2,
+                    "groupId": "_JYwto7KY",
+                    "level": 1,
+                    "ordered": true,
+                    "quoted": false
+                },
+                {
+                    "text": [],
+                    "id": "_UxkpxrKa",
+                    "type": "text"
+                },
+                {
+                    "text": [
+                        {
+                            "insert": "有序缩进 1"
+                        }
+                    ],
+                    "id": "_QeFvpJkA",
+                    "type": "list",
+                    "start": 1,
+                    "level": 1,
+                    "ordered": true,
+                    "groupId": "_ocERmG22"
+                },
+                {
+                    "text": [
+                        {
+                            "insert": "有序缩进 2"
+                        }
+                    ],
+                    "id": "_U7C9tbWQ",
+                    "type": "list",
+                    "ordered": true,
+                    "quoted": false,
+                    "groupId": "_kYsT0WfR",
+                    "level": 2,
+                    "start": 1
+                },
+                {
+                    "text": [
+                        {
+                            "insert": "有序缩进 3"
+                        }
+                    ],
+                    "id": "_sKMgcuCT",
+                    "type": "list",
+                    "ordered": true,
+                    "quoted": false,
+                    "groupId": "_neeVO_L6",
+                    "level": 3,
+                    "start": 1
+                },
+                {
+                    "text": [
+                        {
+                            "insert": "我是一个段落，我是其中的"
+                        },
+                        {
+                            "attributes": {
+                                "style-italic": true
+                            },
+                            "insert": "斜体"
+                        },
+                        {
+                            "insert": "，我是其中的"
+                        },
+                        {
+                            "attributes": {
+                                "style-bold": true
+                            },
+                            "insert": "粗体"
+                        },
+                        {
+                            "insert": "，我是其中的"
+                        },
+                        {
+                            "attributes": {
+                                "style-strikethrough": true
+                            },
+                            "insert": "删除线, "
+                        },
+                        {
+                            "insert": "我是其中的下划线，我是"
+                        },
+                        {
+                            "attributes": {
+                                "style-bg-color-2": true
+                            },
+                            "insert": "高亮1"
+                        },
+                        {
+                            "insert": "。我是"
+                        },
+                        {
+                            "insert": "高亮2",
+                            "attributes": {
+                                "style-bg-color-7": true
+                            }
+                        }
+                    ],
+                    "id": "_Zx1dIkvk",
+                    "type": "text"
+                },
+                {
+                    "text": [
+                        {
+                            "insert": "我是文字高亮",
+                            "attributes": {
+                                "style-color-0": true
+                            }
+                        }
+                    ],
+                    "id": "_nDhGD3A0",
+                    "type": "text"
+                },
+                {
+                    "text": [
+                        {
+                            "insert": "我是文字高亮+背景高亮",
+                            "attributes": {
+                                "style-color-1": true,
+                                "style-bg-color-8": true
+                            }
+                        }
+                    ],
+                    "id": "_lyMhQDGn",
+                    "type": "text"
+                },
+                {
+                    "text": [],
+                    "id": "_BHZ8OKJH",
+                    "type": "text"
+                },
+                {
+                    "text": [
+                        {
+                            "insert": "待办事项 1"
+                        }
+                    ],
+                    "id": "_3oi9VTfF",
+                    "type": "list",
+                    "start": 1,
+                    "level": 1,
+                    "ordered": false,
+                    "groupId": "_MnVHU8iW",
+                    "checkbox": "unchecked"
+                },
+                {
+                    "text": [
+                        {
+                            "insert": "已完成的事项"
+                        }
+                    ],
+                    "id": "_5zkXKCaB",
+                    "type": "list",
+                    "start": 2,
+                    "groupId": "_MnVHU8iW",
+                    "level": 1,
+                    "ordered": false,
+                    "quoted": false,
+                    "checkbox": "checked"
+                },
+                {
+                    "text": [],
+                    "id": "_4bvrGhPg",
+                    "type": "text"
+                },
+                {
+                    "id": "_Fo4si7fn",
+                    "type": "embed",
+                    "embedType": "office",
+                    "align": "center",
+                    "embedData": {
+                        "src": "hj4p5zKjVDPWEZMWuOgfVaOHS2u01a1DyZkBUwEhsYA.csv",
+                        "fileName": "labels.csv",
+                        "fileSize": 200007,
+                        "fileType": "text/csv",
+                        "previewType": "card"
+                    },
+                    "quoted": false
+                },
+                {
+                    "text": [],
+                    "id": "_OJZQ9VFU",
+                    "type": "text"
+                }
+            ],
+            "comments": {},
+            "meta": {
+                "version": 736,
+                "updatedBy": {
+                    "userId": "405d1ff0-11d3-45f9-a638-afb1815af374",
+                    "displayName": "evtok"
+                },
+                "ctime": 1704118303173,
+                "mtime": 1747920276639
+            },
+            "authors": [
+                "405d1ff0-11d3-45f9-a638-afb1815af374"
+            ],
+            "commentators": [],
+            "_KpDgt6c_": [
+                {
+                    "text": [
+                        {
+                            "insert": "代码块"
+                        }
+                    ],
+                    "id": "_WoizYWZS",
+                    "type": "code-line"
+                }
+            ],
+            "_02eBvwy4": [
+                {
+                    "text": [],
+                    "id": "_5QsyQslg",
+                    "type": "text"
+                }
+            ],
+            "_1bvAvq2F": [
+                {
+                    "text": [],
+                    "id": "_dWBMS2O6",
+                    "type": "text"
+                }
+            ],
+            "_7KrKGxTp": [
+                {
+                    "text": [
+                        {
+                            "insert": "表头 1"
+                        }
+                    ],
+                    "id": "_eJQ28fkr",
+                    "type": "text"
+                }
+            ],
+            "_9SLBwgCj": [
+                {
+                    "text": [],
+                    "id": "_DdfnBlxu",
+                    "type": "text",
+                    "quoted": false
+                }
+            ],
+            "_C4NOceox": [
+                {
+                    "text": [],
+                    "id": "_Vq59rxrd",
+                    "type": "text"
+                }
+            ],
+            "_Ff_ecsfP": [
+                {
+                    "text": [],
+                    "id": "_Vfs5R9un",
+                    "type": "text"
+                }
+            ],
+            "_G3yWPqkS": [
+                {
+                    "text": [
+                        {
+                            "insert": "数据 2"
+                        }
+                    ],
+                    "id": "_1rCMit23",
+                    "type": "text"
+                }
+            ],
+            "_Jwia4Z1r": [
+                {
+                    "text": [],
+                    "id": "_GZG075t9",
+                    "type": "text"
+                }
+            ],
+            "_Qr6gOAXf": [
+                {
+                    "text": [],
+                    "id": "_0e3aqJdb",
+                    "type": "text"
+                }
+            ],
+            "_Sdr17q8g": [
+                {
+                    "text": [],
+                    "id": "_Fj89BRaL",
+                    "type": "text"
+                }
+            ],
+            "_V7x190FD": [
+                {
+                    "text": [],
+                    "id": "_g9SclwEC",
+                    "type": "text"
+                }
+            ],
+            "_bR8uX0dR": [
+                {
+                    "text": [
+                        {
+                            "insert": "数据 1"
+                        }
+                    ],
+                    "id": "_DAMrOCbn",
+                    "type": "text"
+                }
+            ],
+            "_g171C1uV": [
+                {
+                    "text": [],
+                    "id": "_WZ1JIMGy",
+                    "type": "text"
+                }
+            ],
+            "_hl6pDSuI": [
+                {
+                    "text": [],
+                    "id": "_l7OnopF8",
+                    "type": "text"
+                }
+            ],
+            "_kJPMc_66": [
+                {
+                    "text": [],
+                    "id": "_HJacr_4M",
+                    "type": "text"
+                }
+            ],
+            "_oJBIzz2m": [
+                {
+                    "text": [
+                        {
+                            "insert": "表头 2"
+                        }
+                    ],
+                    "id": "_aPh6Vmrv",
+                    "type": "text"
+                }
+            ],
+            "_XPS54YpC": [
+                {
+                    "text": [
+                        {
+                            "insert": "![RUNOOB 图标](https://static.jyshare.com/images/runoob-logo.png)"
+                        }
+                    ],
+                    "id": "_NKFhMN1k",
+                    "type": "code-line"
+                },
+                {
+                    "text": [],
+                    "id": "_N3OIKKom",
+                    "type": "code-line",
+                    "quoted": false
+                }
+            ]
+        },
+        "type": "http://sharejs.org/types/JSONv1"
+    },
+    "a": "f",
+    "c": "b7a866b8-1126-4fd2-936a-a29aeb9b7de3",
+    "d": "dffe93ac-01d2-4add-8d12-ad0db0dc2188"
+}

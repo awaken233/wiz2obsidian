@@ -8,6 +8,7 @@ import unittest
 from test.test_wiz_open_api import TestWizOpenApi
 from test.test_note_parser_factory import TestNoteParserFactory
 import os
+import sys
 
 def main():
     log.info("Start sync")
@@ -36,10 +37,26 @@ def test_main():
     # 初始化目录结构
     init_output_dirs()
     
-    unittest.main(module=TestWizOpenApi.__module__, exit=False)
-    unittest.main(module=TestNoteParserFactory.__module__, exit=False)
+    # 创建一个测试加载器
+    loader = unittest.TestLoader()
+
+    # 创建一个测试套件
+    suite = unittest.TestSuite()
+
+    # 从指定的测试类中加载测试用例到测试套件
+    # suite.addTest(loader.loadTestsFromTestCase(TestWizOpenApi))
+    suite.addTest(loader.loadTestsFromTestCase(TestNoteParserFactory))
+
+    # 创建一个测试运行器
+    runner = unittest.TextTestRunner()
+
+    # 运行测试套件
+    runner.run(suite)
 
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) > 1 and sys.argv[1] == 'test':
+        test_main()
+    else:
+        main()
     # test_main()
