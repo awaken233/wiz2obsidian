@@ -3,12 +3,14 @@ import requests
 import json
 from websocket import create_connection
 
+from sync.config import Config
+
 
 class WizOpenApi:
     # account server
     AS_URL = 'https://as.wiz.cn'
 
-    def __init__(self, config):
+    def __init__(self, config: Config):
         self.user_id = config.user_id
         self.password = config.password
         self.group_name = config.group_name

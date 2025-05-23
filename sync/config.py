@@ -40,3 +40,5 @@ class Config:
         
         # group_name 是可选的
         return cls(user_id, password, group_name if group_name else "")
+
+config = Config.load()
