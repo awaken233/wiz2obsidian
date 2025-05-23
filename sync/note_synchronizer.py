@@ -7,13 +7,14 @@ from sync.note import Note
 from sync.note_parser_factory import NoteParserFactory
 from sync.note_property import NoteProperty
 from sync.parsed_note import ParsedNote
+from sync.wiz_open_api import WizOpenApi
 
 
 class NoteSynchronizer:
     # 同步的步长
     PAGE_SIZE = 200
 
-    def __init__(self, api_client, db: Database):
+    def __init__(self, api_client: WizOpenApi, db: Database):
         self.api_client = api_client
         self.db = db
 
@@ -63,8 +64,13 @@ class NoteSynchronizer:
                 img_byte = self.api_client.get_collaboration_image_byte(token, record['doc_guid'], img_file_name)
                 FileManager.download_img_from_byte(record, img_file_name, img_byte)
 
-    # 保存并上传图片, 获取没有上传图片的<图片名称, 上传地址>
-    def _save_img_and_get_url(self, record, need_upload_images):
+    def _save_img_and_get_url(self, record: dict, need_upload_images: list[str]) -> dict[str, str]:
+        """
+        保存并上传图片, 获取没有上传图片的<图片名称, 上传地址>
+        :param record: 笔记记录
+        :param need_upload_images: 需要上传的图片集合
+        :return: 没有上传图片的<图片名称, 上传地址>
+        """
         # 如果需要上传图片的集合为空, 直接返回空dict
         if not need_upload_images:
             return {}
@@ -118,7 +124,7 @@ class NoteSynchronizer:
             # 更新笔记的同步状态
             self.db.update_note_sync_status(record['doc_guid'], sync_status=True, fail_reason='')
         except Exception as e:
-            log.exception(f'sync_single_note_to_local error: ')
+            log.exception('sync_single_note_to_local error: ')
             # 出现异常时更新同步状态和错误原因
             error_reason = str(e)
             self.db.update_note_sync_status(record['doc_guid'], sync_status=False, fail_reason=error_reason)
