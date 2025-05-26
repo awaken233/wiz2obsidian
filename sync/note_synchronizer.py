@@ -136,15 +136,23 @@ class NoteSynchronizer:
     
     def _extract_attachment_links_from_markdown(self, content):
         """
-        从markdown内容中提取附件链接，排除图片链接
+        从markdown内容中提取附件链接，使用特殊标记确保准确性
         :param content: markdown内容
         :return: 附件文件名列表
         """
-        # 使用负向前瞻排除图片链接 ![text](url)，只匹配普通链接 [text](url)
-        pattern = r'(?<!!)\[([^\]]+)\]\(([^)]+)\)'
-        matches = re.findall(pattern, content)
-        # 返回链接URL部分（文件名）
-        return [match[1] for match in matches]
+        # 先移除代码块内容，避免提取代码块中的链接
+        import re
+        # 移除代码块（```...```）
+        content_without_code = re.sub(r'```[\s\S]*?```', '', content)
+        # 移除行内代码（`...`）
+        content_without_code = re.sub(r'`[^`]*`', '', content_without_code)
+        
+        # 只匹配包含特殊标记的附件链接，避免误提取普通链接
+        # 使用负向前瞻排除图片语法，确保不匹配 ![text](wiz-collab-attachment://...)
+        pattern = r'(?<!!)\[([^\]]*)\]\(wiz-collab-attachment://([^)]+)\)'
+        matches = re.findall(pattern, content_without_code)
+        # 返回链接URL部分（文件名），过滤掉空文件名
+        return [match[1] for match in matches if match[1].strip()]
 
     def _process_collaboration_note_attachments(self, record, parsed_note: ParsedNote):
         """
@@ -176,9 +184,9 @@ class NoteSynchronizer:
                 except Exception as e:
                     log.warning(f'协作笔记附件下载失败: {attachment_name}, 错误: {str(e)}')
 
-            # 替换markdown内容中的附件链接
+            # 替换markdown内容中的附件链接（从特殊标记替换为本地路径）
             for original_name, local_path in attachment_url_map.items():
-                parsed_note.content = parsed_note.content.replace(f'({original_name})', f'({local_path})')
+                parsed_note.content = parsed_note.content.replace(f'(wiz-collab-attachment://{original_name})', f'({local_path})')
 
         except Exception as e:
             log.warning(f'处理协作笔记附件失败: {str(e)}')

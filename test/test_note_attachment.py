@@ -43,10 +43,10 @@ class TestNoteAttachment(unittest.TestCase):
         log.info("测试环境清理完成")
 
     def test_extract_attachment_links_from_markdown(self):
-        """测试从markdown内容中提取附件链接的正则表达式功能"""
+        """测试从markdown内容中提取附件链接的正则表达式功能（使用特殊标记）"""
         log.info("开始测试正则表达式提取附件链接功能")
         
-        # 测试数据：包含各种类型的链接
+        # 测试数据：包含各种类型的链接，只有特殊标记的才是附件
         test_content = """
 # 测试文档
 
@@ -57,31 +57,28 @@ class TestNoteAttachment(unittest.TestCase):
 ![测试图片2](./images/image2.jpg)
 ![远程图片](https://example.com/image.png)
 
-## 附件链接（应该被提取）
-[文档附件1](document1.pdf)
-[表格文件](spreadsheet.xlsx)
-[压缩包](archive.zip)
-[本地文件](./files/data.txt)
+## 协作笔记附件链接（应该被提取，使用特殊标记）
+[文档附件1](wiz-collab-attachment://document1.pdf)
+[表格文件](wiz-collab-attachment://spreadsheet.xlsx)
+[压缩包](wiz-collab-attachment://archive.zip)
 
-## 普通链接（应该被提取）
+## 普通链接（应该被排除，没有特殊标记）
 [外部链接](https://example.com)
 [相对链接](../other/page.html)
+[本地文件](./files/data.txt)
 
 ## 混合内容
-这里有一个图片 ![内联图片](inline.png) 和一个附件 [重要文档](important.docx)。
+这里有一个图片 ![内联图片](inline.png) 和一个协作笔记附件 [重要文档](wiz-collab-attachment://important.docx)，还有一个普通链接 [官网](https://official.site)。
         """
         
         # 调用被测试的方法
         attachment_links = self.synchronizer._extract_attachment_links_from_markdown(test_content)
         
-        # 验证结果
+        # 验证结果：只有使用特殊标记的链接才会被提取
         expected_links = [
             'document1.pdf',
             'spreadsheet.xlsx', 
             'archive.zip',
-            './files/data.txt',
-            'https://example.com',
-            '../other/page.html',
             'important.docx'
         ]
         
@@ -93,10 +90,13 @@ class TestNoteAttachment(unittest.TestCase):
         for expected_link in expected_links:
             self.assertIn(expected_link, attachment_links)
         
-        # 确保图片链接没有被错误提取
-        image_links = ['image1.png', './images/image2.jpg', 'https://example.com/image.png', 'inline.png']
-        for image_link in image_links:
-            self.assertNotIn(image_link, attachment_links)
+        # 确保图片链接和普通链接没有被错误提取
+        excluded_links = [
+            'image1.png', './images/image2.jpg', 'https://example.com/image.png', 'inline.png',
+            'https://example.com', '../other/page.html', './files/data.txt', 'https://official.site'
+        ]
+        for excluded_link in excluded_links:
+            self.assertNotIn(excluded_link, attachment_links)
         
         log.info("正则表达式提取附件链接功能测试完成")
 
@@ -156,12 +156,12 @@ class TestNoteAttachment(unittest.TestCase):
         mock_attachment_links = ['test-attachment1.pdf', 'test-attachment2.docx']
         mock_extract_links.return_value = mock_attachment_links
         
-        # 创建测试用的ParsedNote对象
+        # 创建测试用的ParsedNote对象，使用特殊标记
         test_content = """
 # 协作笔记测试
 
-这里有一个附件 [测试附件1](test-attachment1.pdf)
-还有另一个附件 [测试附件2](test-attachment2.docx)
+这里有一个附件 [测试附件1](wiz-collab-attachment://test-attachment1.pdf)
+还有另一个附件 [测试附件2](wiz-collab-attachment://test-attachment2.docx)
         """
         parsed_note = ParsedNote(test_content, [])
         
@@ -182,11 +182,11 @@ class TestNoteAttachment(unittest.TestCase):
             self.assertEqual(mock_get_byte.call_count, len(mock_attachment_links))
             self.assertEqual(mock_download.call_count, len(mock_attachment_links))
             
-            # 验证内容替换
+            # 验证内容替换（特殊标记被替换为本地路径）
             for attachment_name in mock_attachment_links:
                 expected_local_path = f"./attachments/{attachment_name}"
                 self.assertIn(expected_local_path, parsed_note.content)
-                self.assertNotIn(f'({attachment_name})', parsed_note.content)
+                self.assertNotIn(f'(wiz-collab-attachment://{attachment_name})', parsed_note.content)
         
         log.info("协作笔记附件处理功能测试完成")
 

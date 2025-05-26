@@ -124,10 +124,10 @@ class EmbedStrategy(BaseStrategy):
         elif embed_type == "hr":
             return "\n\n---\n\n"
         elif embed_type == "office":
-            # 附件 []()
+            # 附件 []() - 使用特殊标记确保正则提取的准确性
             file_name = row['embedData'].get('fileName', '')
             src = row['embedData'].get('src', '')
-            return f'\n\n[{file_name}]({src})\n\n'
+            return f'\n\n[{file_name}](wiz-collab-attachment://{src})\n\n'
         else:
             log.error(f"Unsupported embed type: {embed_type}")
 
