@@ -198,10 +198,9 @@ class NoteSynchronizer:
             # 下载附件并生成附件列表
             attachment_list = []
             for attachment in attachments:
+                att_guid = attachment.get('attGuid', 'unknown')
+                att_name = attachment.get('name', 'unknown')
                 try:
-                    att_guid = attachment['guid']
-                    att_name = attachment['name']
-                    
                     # 下载附件
                     attachment_byte = self.api_client.download_attachment(record['doc_guid'], att_guid)
                     # 保存附件到本地
