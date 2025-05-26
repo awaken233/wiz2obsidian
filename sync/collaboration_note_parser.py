@@ -43,7 +43,7 @@ class TextStrategy(BaseStrategy):
         text.append(f'{"#" * heading_level} ')
         for text_dict in text_arr:
             text.append(BlockTextConverter.to_text(text_dict))
-        return ''.join(text)
+        return ''.join(text) + "\n"
 
     @staticmethod
     def handle_quote(json_data):
@@ -236,7 +236,7 @@ class MarkdownConverter:
 
     @staticmethod
     def to_text(data, block_row):
-        strategy = MarkdownConverter.create_strategy(data, block_row)
+        strategy: BaseStrategy = MarkdownConverter.create_strategy(data, block_row)
         return strategy.to_text(block_row)
 
     @staticmethod

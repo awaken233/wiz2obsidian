@@ -44,8 +44,8 @@ def test_main():
     suite = unittest.TestSuite()
 
     # 从指定的测试类中加载测试用例到测试套件
-    suite.addTest(loader.loadTestsFromTestCase(TestWizOpenApi))
-    # suite.addTest(loader.loadTestsFromTestCase(TestNoteParserFactory))
+    # suite.addTest(loader.loadTestsFromTestCase(TestWizOpenApi))
+    suite.addTest(loader.loadTestsFromTestCase(TestNoteParserFactory))
 
     # 创建一个测试运行器
     runner = unittest.TextTestRunner()
