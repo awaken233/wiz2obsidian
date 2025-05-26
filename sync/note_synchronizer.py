@@ -1,3 +1,4 @@
+import re
 from log import log
 from sync.database import Database
 from sync.file_manager import FileManager
@@ -115,6 +116,10 @@ class NoteSynchronizer:
 
             # 替换笔记中的上传图片地址
             parsed_note.replace_image_url(origin_img_image_url_map)
+
+            # 处理笔记附件方法
+            self._process_note_attachment(record, parsed_note)
+
             # 拼接笔记属性和 md 原文，写入本地文件中
             note_content = parsed_note.content
             note_prop = NoteProperty.from_sync_record(record).to_string()
@@ -128,6 +133,100 @@ class NoteSynchronizer:
             # 出现异常时更新同步状态和错误原因
             error_reason = str(e)
             self.db.update_note_sync_status(record['doc_guid'], sync_status=False, fail_reason=error_reason)
+    
+    def _extract_attachment_links_from_markdown(self, content):
+        """
+        从markdown内容中提取附件链接，排除图片链接
+        :param content: markdown内容
+        :return: 附件文件名列表
+        """
+        # 使用负向前瞻排除图片链接 ![text](url)，只匹配普通链接 [text](url)
+        pattern = r'(?<!!)\[([^\]]+)\]\(([^)]+)\)'
+        matches = re.findall(pattern, content)
+        # 返回链接URL部分（文件名）
+        return [match[1] for match in matches]
+
+    def _process_collaboration_note_attachments(self, record, parsed_note: ParsedNote):
+        """
+        处理协作笔记的附件
+        :param record: 笔记记录
+        :param parsed_note: 解析后的笔记对象
+        """
+        try:
+            # 从markdown内容中提取附件链接
+            attachment_links = self._extract_attachment_links_from_markdown(parsed_note.content)
+            if not attachment_links:
+                return
+
+            # 获取协作笔记token
+            token = self.api_client.get_collaboration_token(record['doc_guid'])
+            
+            # 下载附件并生成映射表
+            attachment_url_map = {}
+            for attachment_name in attachment_links:
+                try:
+                    # 下载附件二进制内容
+                    attachment_byte = self.api_client.get_collaboration_image_byte(token, record['doc_guid'], attachment_name)
+                    # 保存附件到本地
+                    FileManager.download_attachment_from_byte(record, attachment_name, attachment_byte)
+                    # 生成相对路径
+                    relative_path = f"./attachments/{attachment_name}"
+                    attachment_url_map[attachment_name] = relative_path
+                    log.info(f'协作笔记附件下载完成: {attachment_name}')
+                except Exception as e:
+                    log.warning(f'协作笔记附件下载失败: {attachment_name}, 错误: {str(e)}')
+
+            # 替换markdown内容中的附件链接
+            for original_name, local_path in attachment_url_map.items():
+                parsed_note.content = parsed_note.content.replace(f'({original_name})', f'({local_path})')
+
+        except Exception as e:
+            log.warning(f'处理协作笔记附件失败: {str(e)}')
+
+    def _process_normal_note_attachments(self, record, parsed_note: ParsedNote):
+        """
+        处理普通笔记的附件
+        :param record: 笔记记录
+        :param parsed_note: 解析后的笔记对象
+        """
+        try:
+            # 获取笔记附件列表
+            attachments = self.api_client.get_note_attachments(record['doc_guid'])
+            if not attachments:
+                return
+
+            # 下载附件并生成附件列表
+            attachment_list = []
+            for attachment in attachments:
+                try:
+                    att_guid = attachment['guid']
+                    att_name = attachment['name']
+                    
+                    # 下载附件
+                    attachment_byte = self.api_client.download_attachment(record['doc_guid'], att_guid)
+                    # 保存附件到本地
+                    FileManager.download_attachment_from_byte(record, att_name, attachment_byte)
+                    # 生成相对路径
+                    relative_path = f"./attachments/{att_name}"
+                    attachment_list.append(f"- [{att_name}]({relative_path})")
+                    log.info(f'普通笔记附件下载完成: {att_name}')
+                except Exception as e:
+                    log.warning(f'普通笔记附件下载失败: {att_name}, 错误: {str(e)}')
+
+            # 在笔记内容末尾追加附件列表
+            if attachment_list:
+                attachment_section = "\n\n## 附件\n\n" + "\n".join(attachment_list) + "\n"
+                parsed_note.content += attachment_section
+
+        except Exception as e:
+            log.warning(f'处理普通笔记附件失败: {str(e)}')
+
+    def _process_note_attachment(self, record, parsed_note: ParsedNote):
+        # 判断笔记的类型
+        if Note.is_collaboration_note(record['type']):
+            self._process_collaboration_note_attachments(record, parsed_note)
+        else:
+            self._process_normal_note_attachments(record, parsed_note)
 
     # 将笔记和笔记图片写入图片, 并将图片上传到图床
     def _sync_note_to_local(self, unsync_records):
