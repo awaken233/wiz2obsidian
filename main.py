@@ -7,6 +7,7 @@ from log import log
 import unittest
 from test.test_wiz_open_api import TestWizOpenApi
 from test.test_note_parser_factory import TestNoteParserFactory
+from test.test_note_synchronizer_integration import TestNoteSynchronizerIntegration
 import os
 import sys
 
@@ -45,7 +46,8 @@ def test_main():
 
     # 从指定的测试类中加载测试用例到测试套件
     # suite.addTest(loader.loadTestsFromTestCase(TestWizOpenApi))
-    suite.addTest(loader.loadTestsFromTestCase(TestNoteParserFactory))
+    # suite.addTest(loader.loadTestsFromTestCase(TestNoteParserFactory))
+    suite.addTest(loader.loadTestsFromTestCase(TestNoteSynchronizerIntegration))
 
     # 创建一个测试运行器
     runner = unittest.TextTestRunner()
