@@ -119,7 +119,7 @@ class EmbedStrategy(BaseStrategy):
         if embed_type == "image":
             return self.handle_image(embed_data)
         # toc 和 hr
-        if embed_type == "toc":
+        elif embed_type == "toc":
             return "\n\n[TOC]\n\n"
         elif embed_type == "hr":
             return "\n\n---\n\n"
@@ -128,6 +128,8 @@ class EmbedStrategy(BaseStrategy):
             file_name = row['embedData'].get('fileName', '')
             src = row['embedData'].get('src', '')
             return f'\n\n[{file_name}](wiz-collab-attachment://{src})\n\n'
+        elif embed_type == "snapshot":
+            return self.handle_snapshot(embed_data)
         else:
             log.error(f"Unsupported embed type: {embed_type}")
 
@@ -135,6 +137,42 @@ class EmbedStrategy(BaseStrategy):
         image_url = embed_data["src"]
         file_name = embed_data.get('fileName', '')
         return f"![{file_name}]({image_url})\n\n"
+
+    def handle_snapshot(self, embed_data):
+        """处理快照嵌入类型 - 递归解析完整内容并格式化为引用块"""
+        try:
+            # 解析嵌套的doc内容
+            doc_content = embed_data.get("doc", "")
+            if doc_content:
+                doc_json = json.loads(doc_content)
+                
+                # 递归解析嵌套doc的blocks
+                nested_blocks = doc_json.get("blocks", [])
+                nested_content = []
+                
+                for block in nested_blocks:
+                    # 使用现有的MarkdownConverter解析每个block
+                    block_content = MarkdownConverter.to_text(doc_json, block)
+                    nested_content.append(block_content)
+                
+                # 将解析的内容组合并转换为引用块格式
+                combined_content = ''.join(nested_content).strip()
+                
+                # 按行分割并为每行添加引用前缀
+                lines = combined_content.split('\n')
+                quoted_lines = []
+                
+                for line in lines:
+                    # 为每一行添加 "> " 前缀，包括空行
+                    quoted_lines.append(f"> {line}")
+                
+                result = "\n\n" + '\n'.join(quoted_lines) + "\n\n"
+                return result
+            else:
+                return "\n\n> **嵌入快照**: 无内容\n\n"
+        except (json.JSONDecodeError, KeyError) as e:
+            log.error(f"解析snapshot嵌入内容失败: {e}")
+            return "\n\n> **嵌入快照**: 解析失败\n\n"
 
 
 class TableStrategy(BaseStrategy):
@@ -175,7 +213,9 @@ class BlockTextConverter:
         # 如果都不存在当作普通文本
         if text_dict.get("attributes"):
             attributes = text_dict["attributes"]
-            if attributes.get("link"):
+            if attributes.get("type") == "wiki-link":
+                return BlockTextConverter.handle_wiki_link(text_dict)
+            elif attributes.get("link"):
                 return BlockTextConverter.handle_link(text_dict)
             elif attributes.get("style-code"):
                 return BlockTextConverter.handle_code(text_dict)
@@ -220,6 +260,23 @@ class BlockTextConverter:
     @classmethod
     def handle_highlight(cls, text_dict):
         return f'=={text_dict["insert"]}=='
+
+    @classmethod
+    def handle_wiki_link(cls, text_dict):
+        """处理wiki链接类型"""
+        attributes = text_dict["attributes"]
+        name = attributes.get("name", "")
+        secondary_name = attributes.get("secondaryName", "")
+        
+        # 移除name中的.md后缀
+        if name.endswith('.md'):
+            name = name[:-3]
+        
+        # 如果有secondaryName，使用Obsidian风格的语法 [[显示名称|链接]]
+        if secondary_name:
+            return f'[[{secondary_name}|{name}]]'
+        else:
+            return f'[[{name}]]'
 
 
 class MarkdownConverter:
