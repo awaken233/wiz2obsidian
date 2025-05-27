@@ -1,6 +1,6 @@
 {
     "data": {
-        "v": 748,
+        "v": 766,
         "data": {
             "blocks": [
                 {
@@ -447,11 +447,6 @@
                 },
                 {
                     "text": [],
-                    "id": "_ElW6n3Nh",
-                    "type": "text"
-                },
-                {
-                    "text": [],
                     "id": "_Gb30qRZA",
                     "type": "text"
                 },
@@ -476,20 +471,67 @@
                     "type": "text"
                 },
                 {
-                    "text": [],
+                    "text": [
+                        {
+                            "attributes": {
+                                "box": true,
+                                "id": "_hFUeNYml",
+                                "type": "wiki-link",
+                                "created": 1748357237940,
+                                "name": "- 作者预测核心赛道是人工智能和微信小程序",
+                                "linkId": "18c6d3b2-c442-46f5-83a0-311d7644145b",
+                                "secondaryName": "迅雷创始人下一个十年属于技术创业",
+                                "blockId": "_Ymzwqkxk"
+                            },
+                            "insert": " "
+                        },
+                        {
+                            "insert": " "
+                        }
+                    ],
                     "id": "_OJZQ9VFU",
+                    "type": "text"
+                },
+                {
+                    "text": [],
+                    "id": "_y7jAmkun",
+                    "type": "embed",
+                    "embedType": "snapshot",
+                    "embedData": {
+                        "doc": "{\"blocks\":[{\"text\":[{\"insert\":\"我是一个段落，我是其中的\"},{\"attributes\":{\"style-italic\":true},\"insert\":\"斜体\"},{\"insert\":\"，我是其中的\"},{\"attributes\":{\"style-bold\":true},\"insert\":\"粗体\"},{\"insert\":\"，我是其中的\"},{\"attributes\":{\"style-strikethrough\":true},\"insert\":\"删除线, \"},{\"insert\":\"我是其中的下划线，我是\"},{\"attributes\":{\"style-bg-color-2\":true},\"insert\":\"高亮1\"},{\"insert\":\"。我是\"},{\"attributes\":{\"style-bg-color-7\":true},\"insert\":\"高亮2\"}],\"id\":\"_Zx1dIkvk\",\"type\":\"text\",\"quoted\":false}],\"comments\":{},\"meta\":{\"appId\":\"b7a866b8-1126-4fd2-936a-a29aeb9b7de3\",\"docId\":\"dffe93ac-01d2-4add-8d12-ad0db0dc2188\",\"title\":\"笔记分析\",\"firstBlockId\":\"_Zx1dIkvk\",\"apiServer\":\"https://vipkshttps10.wiz.cn/editor/b7a866b8-1126-4fd2-936a-a29aeb9b7de3/dffe93ac-01d2-4add-8d12-ad0db0dc2188\"},\"commentators\":[]}"
+                    },
+                    "align": "center"
+                },
+                {
+                    "text": [
+                        {
+                            "insert": " ",
+                            "attributes": {
+                                "linkId": "48148eb5-473e-40e2-b176-c214b3d24dfb",
+                                "box": true,
+                                "id": "_b8LD3TrE",
+                                "type": "wiki-link",
+                                "created": 1748357344123,
+                                "name": "关键字"
+                            }
+                        },
+                        {
+                            "insert": " "
+                        }
+                    ],
+                    "id": "_ij6iPgNV",
                     "type": "text"
                 }
             ],
             "comments": {},
             "meta": {
-                "version": 748,
+                "version": 766,
                 "updatedBy": {
                     "userId": "405d1ff0-11d3-45f9-a638-afb1815af374",
                     "displayName": "evtok"
                 },
                 "ctime": 1704118303173,
-                "mtime": 1747993202049
+                "mtime": 1748357350398
             },
             "authors": [
                 "405d1ff0-11d3-45f9-a638-afb1815af374"
