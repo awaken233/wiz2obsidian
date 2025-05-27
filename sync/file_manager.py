@@ -75,6 +75,16 @@ class FileManager:
         return os.path.join(app_root, "output", "note", record['category'].strip("/").replace("/", os.path.sep), "images")
 
     @staticmethod
+    def get_attachments_directory(record):
+        """
+        获取附件保存目录: 当前笔记同级目录下 ./attachments/
+        :param record: 笔记同步记录
+        :return:
+        """
+        app_root = FileManager.get_app_root()
+        return os.path.join(app_root, "output", "note", record['category'].strip("/").replace("/", os.path.sep), "attachments")
+
+    @staticmethod
     def image_file_is_not_exist(record, img_file_name):
         img_directory = FileManager.get_img_directory(record)
         full_path = os.path.join(img_directory, img_file_name)
@@ -101,6 +111,22 @@ class FileManager:
         log.info(f"download_img_from_byte {full_path}")
         with open(full_path, "wb") as file:
             file.write(byte)
+
+    @staticmethod
+    def download_attachment_from_byte(record, att_file_name, byte_content):
+        """
+        从二进制内容下载附件到本地
+        :param record: 笔记同步记录
+        :param att_file_name: 附件文件名
+        :param byte_content: 附件二进制内容
+        :return:
+        """
+        attachments_directory = FileManager.get_attachments_directory(record)
+        FileManager._create_directory(attachments_directory)
+        full_path = os.path.join(attachments_directory, att_file_name)
+        log.info(f"download_attachment_from_byte {full_path}")
+        with open(full_path, "wb") as file:
+            file.write(byte_content)
 
 
     @staticmethod

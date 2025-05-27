@@ -9,7 +9,7 @@ import re
 class NoteParserFactory:
 
     @staticmethod
-    def create_parser(note_type, title):
+    def create_parser(note_type, title=None):
         """
         根据笔记类型创建笔记解析器, 如下是我的笔记类型.
         +-------------+--------+

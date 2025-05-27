@@ -1,5 +1,6 @@
 import json
 import unittest
+from sync.file_manager import FileManager
 from sync.wiz_open_api import WizOpenApi
 from log import log
 from sync.note_parser_factory import NoteParserFactory
@@ -18,13 +19,13 @@ class TestNoteParserFactory(unittest.TestCase):
         self.wiz_open_api = WizOpenApi(config)
 
     # 测试解析html笔记的内容
-    def test_parse_html_note(self):
-        parser = NoteParserFactory.create_parser('document', 'html')
-        doc_guid = 'bdfd068c-b12f-4ae4-ae68-8b6ba6e739ad'
-        origin_content = self.wiz_open_api.get_note_detail(doc_guid)['html']
-        log.info(f'原始内容: {origin_content}')
-        parsed_note = parser.parse_content(origin_content)
-        log.info(f'解析后的内容: {parsed_note}')
+    # def test_parse_html_note(self):
+    #     parser = NoteParserFactory.create_parser('document', 'html')
+    #     doc_guid = 'bdfd068c-b12f-4ae4-ae68-8b6ba6e739ad'
+    #     origin_content = self.wiz_open_api.get_note_detail(doc_guid)['html']
+    #     log.info(f'原始内容: {origin_content}')
+    #     parsed_note = parser.parse_content(origin_content)
+    #     log.info(f'解析后的内容: {parsed_note}')
 
 
     # # 测试解析 lite 笔记的内容
@@ -37,17 +38,18 @@ class TestNoteParserFactory(unittest.TestCase):
     #     log.info(f'解析后的内容: {parsed_note}')
 
 
-    # # # 测试解析协作笔记的内容
-    # def test_parse_collaboration_note(self):
-    #     parser = NoteParserFactory.create_parser('collaboration')
-    #     # 获取笔记的原始内容
-    #     doc_guid = '8c049e78-ec9c-4cb7-8f98-d22416f02f5e'
-    #     # doc_guid = 'dffe93ac-01d2-4add-8d12-ad0db0dc2188'
-    #     collaboration_token = self.wiz_open_api.get_collaboration_token(doc_guid)
-    #     origin_content = self.wiz_open_api.get_collaboration_content(collaboration_token, doc_guid)
-    #     # 使用解析器解析笔记，将笔记转化为md, 并提取笔记中需要上传的图片
-    #     parsed_note = parser.parse_content(origin_content)
-    #     log.info(parsed_note)
+    # # 测试解析协作笔记的内容
+    def test_parse_collaboration_note(self):
+        parser = NoteParserFactory.create_parser('collaboration')
+        # 笔记名: 笔记分析
+        doc_guid = 'dffe93ac-01d2-4add-8d12-ad0db0dc2188'
+        collaboration_token = self.wiz_open_api.get_collaboration_token(doc_guid)
+        origin_content = self.wiz_open_api.get_collaboration_content(collaboration_token, doc_guid)
+        # 使用解析器解析笔记，将笔记转化为md, 并提取笔记中需要上传的图片
+        parsed_note = parser.parse_content(origin_content)
+        # 将笔记内容写入到 output/collaboration_note_analysis.md 文件中
+        with open('output/collaboration_note_analysis.md', 'w') as f:
+            f.write(parsed_note)
 
 
     # 测试解析wss返回的内容

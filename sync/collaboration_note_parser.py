@@ -43,7 +43,7 @@ class TextStrategy(BaseStrategy):
         text.append(f'{"#" * heading_level} ')
         for text_dict in text_arr:
             text.append(BlockTextConverter.to_text(text_dict))
-        return ''.join(text)
+        return ''.join(text) + "\n"
 
     @staticmethod
     def handle_quote(json_data):
@@ -124,10 +124,10 @@ class EmbedStrategy(BaseStrategy):
         elif embed_type == "hr":
             return "\n\n---\n\n"
         elif embed_type == "office":
-            # 附件 []()
+            # 附件 []() - 使用特殊标记确保正则提取的准确性
             file_name = row['embedData'].get('fileName', '')
             src = row['embedData'].get('src', '')
-            return f'\n\n[{file_name}]({src})\n\n'
+            return f'\n\n[{file_name}](wiz-collab-attachment://{src})\n\n'
         else:
             log.error(f"Unsupported embed type: {embed_type}")
 
@@ -185,6 +185,9 @@ class BlockTextConverter:
                 return BlockTextConverter.handle_bold(text_dict)
             elif attributes.get('style-strikethrough'):
                 return BlockTextConverter.handle_strikethrough(text_dict)
+            # 处理文字颜色和背景颜色.
+            elif any(key.startswith("style-color-") or key.startswith("style-bg-color-") for key in attributes.keys()):
+                return BlockTextConverter.handle_highlight(text_dict)
             else:
                 return BlockTextConverter.handle_text(text_dict)
         else:
@@ -214,6 +217,10 @@ class BlockTextConverter:
     def handle_strikethrough(cls, text_dict):
         return f'~~{text_dict["insert"]}~~'
 
+    @classmethod
+    def handle_highlight(cls, text_dict):
+        return f'=={text_dict["insert"]}=='
+
 
 class MarkdownConverter:
     STRATEGY_MAP = {
@@ -229,7 +236,7 @@ class MarkdownConverter:
 
     @staticmethod
     def to_text(data, block_row):
-        strategy = MarkdownConverter.create_strategy(data, block_row)
+        strategy: BaseStrategy = MarkdownConverter.create_strategy(data, block_row)
         return strategy.to_text(block_row)
 
     @staticmethod

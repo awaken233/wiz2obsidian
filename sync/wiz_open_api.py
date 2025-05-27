@@ -3,12 +3,14 @@ import requests
 import json
 from websocket import create_connection
 
+from sync.config import Config
+
 
 class WizOpenApi:
     # account server
     AS_URL = 'https://as.wiz.cn'
 
-    def __init__(self, config):
+    def __init__(self, config: Config):
         self.user_id = config.user_id
         self.password = config.password
         self.group_name = config.group_name
@@ -211,5 +213,44 @@ class WizOpenApi:
 
         ws.close()
         return content
+
+    def get_note_attachments(self, doc_guid):
+        """
+        获取笔记附件列表
+        :param doc_guid: 笔记GUID
+        :return: 附件列表数据
+        """
+        url = f'{self.kb_server}/ks/note/attachments/{self.kb_guid}/{doc_guid}'
+        params = {
+            'extra': '1',
+            'clientType': 'web',
+            'clientVersion': '4.0',
+            'lang': 'zh-cn'
+        }
+        response = requests.get(url, params=params, headers={'X-Wiz-Token': self.token})
+        if response.status_code != 200:
+            raise Exception(f'获取笔记附件列表失败: http状态码为:{response.status_code}')
+        data = response.json()
+        if data['returnCode'] != 200:
+            raise Exception(f'获取笔记附件列表失败: 为知响应报文为:{response.json()}')
+        return data['result']
+
+    def download_attachment(self, doc_guid, att_guid):
+        """
+        下载笔记附件
+        :param doc_guid: 笔记GUID
+        :param att_guid: 附件GUID
+        :return: 附件的二进制内容
+        """
+        url = f'{self.kb_server}/ks/attachment/download/{self.kb_guid}/{doc_guid}/{att_guid}'
+        params = {
+            'clientType': 'web',
+            'clientVersion': '4.0',
+            'lang': 'zh-cn'
+        }
+        response = requests.get(url, params=params, headers={'X-Wiz-Token': self.token})
+        if response.status_code != 200:
+            raise Exception(f'下载附件失败: http状态码为:{response.status_code}')
+        return response.content
 
 
