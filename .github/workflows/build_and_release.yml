@@ -148,22 +148,11 @@ jobs:
           zip -r artifacts/wiz2obsidian-Linux.zip artifacts/wiz2obsidian-Linux/
           ls -R artifacts # List contents for verification
 
-      - name: Generate Changelog
-        id: changelog
-        uses: mikepenz/release-changelog-builder-action@v4
-        with:
-          configuration: ".github/changelog-config.json"
-          ignorePreReleases: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2 # Use v2 for latest features
         with:
-          # 启用自动生成 release notes
+          # 启用自动生成 release notes（包含自动的贡献者信息）
           generate_release_notes: true
-          # 使用自定义的changelog作为body
-          body: ${{ steps.changelog.outputs.changelog }}
           # 可选：设置为 draft 直到手动发布
           # draft: true
           # 可选：标记为预发布版本
