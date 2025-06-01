@@ -37,6 +37,34 @@ class FileManager:
             file.write(content)
 
     @staticmethod
+    def sanitize_filename(filename):
+        """
+        清理文件名，确保跨平台兼容性
+        :param filename: 原始文件名
+        :return: 安全的文件名
+        """
+        # Windows禁用字符: < > : " | ? * / \
+        # 其他系统主要是 /
+        unsafe_chars = ['/', '\\', ':', '*', '?', '"', '<', '>', '|']
+        
+        safe_filename = filename
+        for char in unsafe_chars:
+            safe_filename = safe_filename.replace(char, '_')
+        
+        # 移除前后空白和点号（防止隐藏文件或路径问题）
+        safe_filename = safe_filename.strip(' .')
+        
+        # 限制长度（大多数文件系统限制255字符）
+        if len(safe_filename) > 200:  # 留一些余量给.md扩展名
+            safe_filename = safe_filename[:200]
+        
+        # 确保不是空文件名
+        if not safe_filename:
+            safe_filename = "untitled"
+            
+        return safe_filename
+
+    @staticmethod
     def save_md_to_file(category, title, content):
         """
         保存md文件
@@ -50,8 +78,10 @@ class FileManager:
         output_directory = os.path.join(app_root, "output", "note", category.strip("/").replace("/", os.path.sep))
         FileManager._create_directory(output_directory)
 
-        # 清理 title，防止包含路径分隔符
-        safe_title = title.replace("/", "_").replace("\\", "_")
+        # 清理标题，确保文件名安全
+        safe_title = FileManager.sanitize_filename(title)
+        
+        # 如果 title 是以 .md 结尾, 新文件的文件名无需添加 .md
         if safe_title.endswith(".md"):
             safe_title = safe_title[:-3]
 
@@ -61,7 +91,9 @@ class FileManager:
     @staticmethod
     def save_image_to_file(category, title, file_name, content):
         app_root = FileManager.get_app_root()
-        output_directory = os.path.join(app_root, "output", "export_image", category.strip("/").replace("/", os.path.sep), title)
+        # 清理标题，确保目录名安全
+        safe_title = FileManager.sanitize_filename(title)
+        output_directory = os.path.join(app_root, "output", "export_image", category.strip("/").replace("/", os.path.sep), safe_title)
         FileManager._create_directory(output_directory)
         FileManager._write_bfile(output_directory, file_name, content)
 
