@@ -50,11 +50,12 @@ class FileManager:
         output_directory = os.path.join(app_root, "output", "note", category.strip("/").replace("/", os.path.sep))
         FileManager._create_directory(output_directory)
 
-        # 如果 title 是以 .md 结尾, 新文件的文件名无序添加 .md
-        if title.endswith(".md"):
-            title = title[:-3]
+        # 清理 title，防止包含路径分隔符
+        safe_title = title.replace("/", "_").replace("\\", "_")
+        if safe_title.endswith(".md"):
+            safe_title = safe_title[:-3]
 
-        FileManager._write_file(output_directory, title + '.md', content)
+        FileManager._write_file(output_directory, safe_title + '.md', content)
 
     # 保存图片到本地
     @staticmethod
