@@ -1,0 +1,52 @@
+{
+  "categories": [
+    {
+      "title": "## 🚀 新功能 / New Features",
+      "labels": ["feature", "enhancement", "new"]
+    },
+    {
+      "title": "## 🐛 修复 / Bug Fixes",
+      "labels": ["fix", "bug", "bugfix", "hotfix"]
+    },
+    {
+      "title": "## 📚 文档 / Documentation", 
+      "labels": ["docs", "documentation"]
+    },
+    {
+      "title": "## 🔧 其他改进 / Other Changes",
+      "labels": ["*"]
+    }
+  ],
+  "template": "#{{CHANGELOG}}\n\n## 🤝 贡献者 / Contributors\n感谢所有为此版本做出贡献的开发者！\n\n#{{CONTRIBUTORS}}",
+  "pr_template": "- #{{TITLE}} by @#{{AUTHOR}} in ##{{NUMBER}}",
+  "empty_template": "- 无重大变更",
+  "label_extractor": [
+    {
+      "pattern": "(.)\\s*(.+)",
+      "target": "$1",
+      "flags": "gu"
+    }
+  ],
+  "duplicate_filter": {
+    "pattern": "[ABC-....]",
+    "on_property": "title",
+    "method": "match"
+  },
+  "transformers": [
+    {
+      "pattern": "[\\-\\*] (\\[(...|TEST|CI|SKIP)\\])( )*(.+?)\n(.+?[\\-\\*] )(.+)",
+      "target": "- $4\n$5$6"
+    }
+  ],
+  "max_tags_to_fetch": 200,
+  "max_pull_requests": 200,
+  "max_back_track_time_days": 365,
+  "exclude_merge_branches": [
+    "main",
+    "master"
+  ],
+  "sort": {
+    "order": "ASC",
+    "on_property": "mergedAt"
+  }
+} 
