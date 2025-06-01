@@ -129,6 +129,11 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/') # Ensure this runs only for tags
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整的git历史，用于生成changelog
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -146,9 +151,11 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2 # Use v2 for latest features
         with:
-          # Optional: Draft releases until manually published
+          # 启用自动生成 release notes（包含自动的贡献者信息）
+          generate_release_notes: true
+          # 可选：设置为 draft 直到手动发布
           # draft: true
-          # Optional: Mark as pre-release
+          # 可选：标记为预发布版本
           # prerelease: contains(github.ref, '-beta') || contains(github.ref, '-rc')
           files: |
             artifacts/wiz2obsidian-Windows.zip

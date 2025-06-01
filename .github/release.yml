@@ -1,0 +1,27 @@
+# .github/release.yml
+# 配置 GitHub 自动生成的 Release Notes 格式
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+      - dependencies
+      - github_actions
+  categories:
+    - title: 🚀 新功能
+      labels:
+        - feature
+        - enhancement
+        - new
+    - title: 🐛 修复  
+      labels:
+        - fix
+        - bug
+        - bugfix
+        - hotfix
+    - title: 📚 文档
+      labels:
+        - docs
+        - documentation
+    - title: 🔧 其他改进
+      labels:
+        - "*" 
