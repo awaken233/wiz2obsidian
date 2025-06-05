@@ -225,6 +225,8 @@ class BlockTextConverter:
             attributes = text_dict["attributes"]
             if attributes.get("type") == "wiki-link":
                 return BlockTextConverter.handle_wiki_link(text_dict)
+            elif attributes.get("type") == "math":
+                return BlockTextConverter.handle_math(text_dict)
             elif attributes.get("link"):
                 return BlockTextConverter.handle_link(text_dict)
             elif attributes.get("style-code"):
@@ -287,6 +289,15 @@ class BlockTextConverter:
             return f'[[{secondary_name}|{name}]]'
         else:
             return f'[[{name}]]'
+
+    @classmethod
+    def handle_math(cls, text_dict):
+        """处理数学公式类型"""
+        attributes = text_dict["attributes"]
+        tex = attributes.get("tex", "")
+        # 去除tex内容前后的空格，并转换为行内数学公式格式
+        tex_content = tex.strip()
+        return f'${tex_content}$'
 
 
 class MarkdownConverter:
