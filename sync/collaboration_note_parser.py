@@ -135,6 +135,8 @@ class EmbedStrategy(BaseStrategy):
             return ""
         elif embed_type == "webpage":
             return self.handle_webpage(embed_data)
+        elif embed_type == "drawio":
+            return self.handle_drawio(embed_data)
         else:
             log.error(f"Unsupported embed type: {embed_type}")
 
@@ -183,6 +185,13 @@ class EmbedStrategy(BaseStrategy):
         """处理网页嵌入类型"""
         src = embed_data.get("src", "")
         return f"\n\n[webpage]({src})\n\n"
+
+    def handle_drawio(self, embed_data):
+        """处理流程图类型 - 使用和附件相同的处理逻辑"""
+        src = embed_data.get("src", "")
+        # 流程图没有fileName字段，使用固定名称
+        file_name = "流程图"
+        return f'\n\n[{file_name}](wiz-collab-attachment://{src})\n\n'
 
 
 class TableStrategy(BaseStrategy):
