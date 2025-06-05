@@ -16,15 +16,91 @@ class BaseStrategy:
 
 class TextStrategy(BaseStrategy):
     def to_text(self, block_row):
-        return '\n' + self.handle_text_obj_text(block_row) + '\n'
+        text_content = '\n' + self.handle_text_obj_text(block_row) + '\n'
+        # 检查是否有评论，如果有则添加评论内容
+        comment_content = self.handle_comments(block_row)
+        return text_content + comment_content
 
     def handle_text_obj_text(self, block_row):
+        # 注意：此方法忽略align属性（居中、左对齐、右对齐），只处理文本内容
         if block_row.get("quoted"):
             return self.handle_quote(block_row['text'])
         elif block_row.get("heading"):
             return self.handle_header(block_row, block_row['text'])
         else:
             return self.handle_text(block_row['text'])
+
+    def handle_comments(self, block_row):
+        """处理评论内容"""
+        comments_content = []
+        
+        # 检查文本中是否有评论引用
+        for text_dict in block_row.get('text', []):
+            attributes = text_dict.get('attributes', {})
+            for attr_key, comment_id in attributes.items():
+                if attr_key.startswith('comment-'):
+                    # 从全局comments数据中获取评论信息
+                    comment_data = self.data.get('comments', {}).get(comment_id)
+                    if comment_data:
+                        comment_text = self.format_comment(comment_data)
+                        comments_content.append(comment_text)
+                        
+                        # 检查是否有子评论
+                        group_id = comment_data.get('groupId')
+                        if group_id:
+                            sub_comments = self.get_sub_comments(group_id, comment_id)
+                            comments_content.extend(sub_comments)
+        
+        return ''.join(comments_content)
+
+    def format_comment(self, comment_data):
+        """格式化单个评论"""
+        display_name = comment_data.get('displayName', '未知用户')
+        created_timestamp = comment_data.get('created', 0)
+        
+        # 转换时间戳为可读格式
+        import datetime
+        try:
+            dt = datetime.datetime.fromtimestamp(created_timestamp / 1000)  # 毫秒转秒
+            # 判断上午还是下午
+            if dt.hour < 12:
+                time_period = '上午'
+                hour = dt.hour if dt.hour != 0 else 12
+            else:
+                time_period = '下午'
+                hour = dt.hour if dt.hour <= 12 else dt.hour - 12
+            
+            formatted_time = f"{dt.year}/{dt.month}/{dt.day} {time_period}{hour}:{dt.minute:02d}:{dt.second:02d}"
+        except:
+            formatted_time = '时间未知'
+        
+        # 处理评论内容块
+        comment_text_parts = []
+        for block in comment_data.get('blocks', []):
+            for text_dict in block.get('text', []):
+                if text_dict.get('attributes', {}).get('type') == 'mention':
+                    # 处理@提及
+                    mention_text = text_dict.get('attributes', {}).get('text', '')
+                    comment_text_parts.append(f'@{mention_text}')
+                else:
+                    comment_text_parts.append(text_dict.get('insert', ''))
+        
+        comment_text = ''.join(comment_text_parts)
+        
+        return f'\n\n> {display_name} {formatted_time}\n\n{comment_text}\n'
+
+    def get_sub_comments(self, group_id, main_comment_id):
+        """获取同一组中的其他评论（子评论）"""
+        sub_comments = []
+        all_comments = self.data.get('comments', {})
+        
+        for comment_id, comment_data in all_comments.items():
+            if (comment_data.get('groupId') == group_id and 
+                comment_id != main_comment_id):
+                sub_comment_text = self.format_comment(comment_data)
+                sub_comments.append(sub_comment_text)
+        
+        return sub_comments
     @staticmethod
     def handle_text(text_arr):
         # 判断是否是空数组
@@ -130,6 +206,13 @@ class EmbedStrategy(BaseStrategy):
             return f'\n\n[{file_name}](wiz-collab-attachment://{src})\n\n'
         elif embed_type == "snapshot":
             return self.handle_snapshot(embed_data)
+        elif embed_type == "encrypt-text":
+            # 忽略加密文本，不解析内容
+            return ""
+        elif embed_type == "webpage":
+            return self.handle_webpage(embed_data)
+        elif embed_type == "drawio":
+            return self.handle_drawio(embed_data)
         else:
             log.error(f"Unsupported embed type: {embed_type}")
 
@@ -174,6 +257,18 @@ class EmbedStrategy(BaseStrategy):
             log.error(f"解析snapshot嵌入内容失败: {e}")
             return "\n\n> **嵌入快照**: 解析失败\n\n"
 
+    def handle_webpage(self, embed_data):
+        """处理网页嵌入类型"""
+        src = embed_data.get("src", "")
+        return f"\n\n[webpage]({src})\n\n"
+
+    def handle_drawio(self, embed_data):
+        """处理流程图类型 - 使用和附件相同的处理逻辑"""
+        src = embed_data.get("src", "")
+        # 流程图没有fileName字段，使用固定名称
+        file_name = "流程图"
+        return f'\n\n[{file_name}](wiz-collab-attachment://{src})\n\n'
+
 
 class TableStrategy(BaseStrategy):
 
@@ -215,6 +310,8 @@ class BlockTextConverter:
             attributes = text_dict["attributes"]
             if attributes.get("type") == "wiki-link":
                 return BlockTextConverter.handle_wiki_link(text_dict)
+            elif attributes.get("type") == "math":
+                return BlockTextConverter.handle_math(text_dict)
             elif attributes.get("link"):
                 return BlockTextConverter.handle_link(text_dict)
             elif attributes.get("style-code"):
@@ -225,6 +322,12 @@ class BlockTextConverter:
                 return BlockTextConverter.handle_bold(text_dict)
             elif attributes.get('style-strikethrough'):
                 return BlockTextConverter.handle_strikethrough(text_dict)
+            elif attributes.get('style-super'):
+                # 忽略上标格式，直接返回文本
+                return BlockTextConverter.handle_text(text_dict)
+            elif attributes.get('style-sub'):
+                # 忽略下标格式，直接返回文本
+                return BlockTextConverter.handle_text(text_dict)
             # 处理文字颜色和背景颜色.
             elif any(key.startswith("style-color-") or key.startswith("style-bg-color-") for key in attributes.keys()):
                 return BlockTextConverter.handle_highlight(text_dict)
@@ -277,6 +380,15 @@ class BlockTextConverter:
             return f'[[{secondary_name}|{name}]]'
         else:
             return f'[[{name}]]'
+
+    @classmethod
+    def handle_math(cls, text_dict):
+        """处理数学公式类型"""
+        attributes = text_dict["attributes"]
+        tex = attributes.get("tex", "")
+        # 去除tex内容前后的空格，并转换为行内数学公式格式
+        tex_content = tex.strip()
+        return f'${tex_content}$'
 
 
 class MarkdownConverter:
