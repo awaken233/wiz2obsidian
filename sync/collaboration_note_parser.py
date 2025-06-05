@@ -130,6 +130,9 @@ class EmbedStrategy(BaseStrategy):
             return f'\n\n[{file_name}](wiz-collab-attachment://{src})\n\n'
         elif embed_type == "snapshot":
             return self.handle_snapshot(embed_data)
+        elif embed_type == "encrypt-text":
+            # 忽略加密文本，不解析内容
+            return ""
         else:
             log.error(f"Unsupported embed type: {embed_type}")
 
