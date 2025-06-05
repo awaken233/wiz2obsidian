@@ -246,6 +246,12 @@ class BlockTextConverter:
                 return BlockTextConverter.handle_bold(text_dict)
             elif attributes.get('style-strikethrough'):
                 return BlockTextConverter.handle_strikethrough(text_dict)
+            elif attributes.get('style-super'):
+                # 忽略上标格式，直接返回文本
+                return BlockTextConverter.handle_text(text_dict)
+            elif attributes.get('style-sub'):
+                # 忽略下标格式，直接返回文本
+                return BlockTextConverter.handle_text(text_dict)
             # 处理文字颜色和背景颜色.
             elif any(key.startswith("style-color-") or key.startswith("style-bg-color-") for key in attributes.keys()):
                 return BlockTextConverter.handle_highlight(text_dict)
