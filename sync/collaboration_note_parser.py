@@ -19,6 +19,7 @@ class TextStrategy(BaseStrategy):
         return '\n' + self.handle_text_obj_text(block_row) + '\n'
 
     def handle_text_obj_text(self, block_row):
+        # 注意：此方法忽略align属性（居中、左对齐、右对齐），只处理文本内容
         if block_row.get("quoted"):
             return self.handle_quote(block_row['text'])
         elif block_row.get("heading"):
