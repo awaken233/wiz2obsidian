@@ -133,6 +133,8 @@ class EmbedStrategy(BaseStrategy):
         elif embed_type == "encrypt-text":
             # 忽略加密文本，不解析内容
             return ""
+        elif embed_type == "webpage":
+            return self.handle_webpage(embed_data)
         else:
             log.error(f"Unsupported embed type: {embed_type}")
 
@@ -176,6 +178,11 @@ class EmbedStrategy(BaseStrategy):
         except (json.JSONDecodeError, KeyError) as e:
             log.error(f"解析snapshot嵌入内容失败: {e}")
             return "\n\n> **嵌入快照**: 解析失败\n\n"
+
+    def handle_webpage(self, embed_data):
+        """处理网页嵌入类型"""
+        src = embed_data.get("src", "")
+        return f"\n\n[webpage]({src})\n\n"
 
 
 class TableStrategy(BaseStrategy):
