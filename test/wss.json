@@ -1,6 +1,6 @@
 {
     "data": {
-        "v": 830,
+        "v": 858,
         "data": {
             "blocks": [
                 {
@@ -541,7 +541,7 @@
                     "embedData": {
                         "id": "__QKjLEJ7",
                         "ownerId": "405d1ff0-11d3-45f9-a638-afb1815af374",
-                        "realText": "09c0ee771e99eaec9bef9ee263c721a6842f846a7f3a184ae6cb9c18675b773dU2FsdGVkX1925g1d6rRh30R8eb8xiG41xe/1/axem5g=",
+                        "realText": "a9e5d90bdf045f49ac5fd96799b433e9167e74fd987a531b1f918aa76cbdf826U2FsdGVkX1/k+rKkLc94Jofvb7YxewHSFn6wtYV8GSY=",
                         "hasPassword": true,
                         "prompt": "123456",
                         "showPromptForAll": true,
@@ -679,13 +679,24 @@
                 },
                 {
                     "text": [],
-                    "id": "_t0Gcuvm8",
+                    "id": "_YpqqXR6L",
                     "type": "text"
                 },
                 {
                     "text": [],
-                    "id": "_ZTqYF4gj",
+                    "id": "_iFZvzckt",
                     "type": "text"
+                },
+                {
+                    "id": "_t0Gcuvm8",
+                    "type": "embed",
+                    "embedType": "mermaid",
+                    "align": "center",
+                    "quoted": false,
+                    "embedData": {
+                        "mermaidText": "sequenceDiagram\n    participant 用户\n    participant 浏览器端\n    participant 服务端\n    participant 微信端\n\n    用户->>浏览器端: 请求登录\n    浏览器端->>服务端: 请求授权链接\n    服务端-->>浏览器端: 返回授权链接\n    浏览器端->>微信端: 跳转授权页\n    微信端-->>浏览器端: 返回code\n    浏览器端->>服务端: 发送code\n    服务端->>微信端: 用code换token\n    微信端-->>服务端: 返回access_token\n    服务端-->>浏览器端: 登录成功",
+                        "src": "bcWuf0jLuQSSCRF14F7VS0oBO1pQaWIO2mz63zEjSsQ.svg"
+                    }
                 }
             ],
             "comments": {
@@ -749,13 +760,13 @@
                 }
             },
             "meta": {
-                "version": 830,
+                "version": 858,
                 "updatedBy": {
                     "userId": "405d1ff0-11d3-45f9-a638-afb1815af374",
                     "displayName": "evtok"
                 },
                 "ctime": 1704118303173,
-                "mtime": 1749106025081
+                "mtime": 1750061111288
             },
             "authors": [
                 "405d1ff0-11d3-45f9-a638-afb1815af374"
@@ -916,6 +927,13 @@
                     "id": "_N3OIKKom",
                     "type": "code-line",
                     "quoted": false
+                }
+            ],
+            "_KoahLj2q": [
+                {
+                    "text": [],
+                    "id": "_JomB5pcL",
+                    "type": "code-line"
                 }
             ]
         },
