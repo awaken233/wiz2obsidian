@@ -213,8 +213,11 @@ class EmbedStrategy(BaseStrategy):
             return self.handle_webpage(embed_data)
         elif embed_type == "drawio":
             return self.handle_drawio(embed_data)
+        elif embed_type == "mermaid":
+            return self.handle_mermaid(embed_data)
         else:
             log.error(f"Unsupported embed type: {embed_type}")
+            return ""  # 返回空字符串而不是 None
 
     def handle_image(self, embed_data):
         image_url = embed_data["src"]
@@ -268,6 +271,21 @@ class EmbedStrategy(BaseStrategy):
         # 流程图没有fileName字段，使用固定名称
         file_name = "流程图"
         return f'\n\n[{file_name}](wiz-collab-attachment://{src})\n\n'
+
+    def handle_mermaid(self, embed_data):
+        """处理 mermaid 流程图类型"""
+        mermaid_text = embed_data.get("mermaidText", "")
+        if mermaid_text:
+            # 将 mermaid 文本转换为 markdown 代码块格式
+            return f'\n\n```mermaid\n{mermaid_text}\n```\n\n'
+        else:
+            # 如果没有 mermaidText，尝试使用 src 作为附件链接
+            src = embed_data.get("src", "")
+            if src:
+                file_name = "Mermaid流程图"
+                return f'\n\n[{file_name}](wiz-collab-attachment://{src})\n\n'
+            else:
+                return '\n\n```mermaid\n# Mermaid 图表内容缺失\n```\n\n'
 
 
 class TableStrategy(BaseStrategy):
