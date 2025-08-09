@@ -39,7 +39,7 @@ class ImageHandler:
             return None # 或者根据需要返回错误指示
 
         # 返回相对路径 ./images/new_image_name.ext
-        # 注意: FileManager.get_img_directory 返回的是相对 output 的路径,
-        # 而我们需要的是相对于 Markdown 文件的路径, 通常是 ./images/
-        relative_path = os.path.join(".", "images", new_image_name)
+        # 注意: 这里必须使用 POSIX 风格的分隔符，以保证 Obsidian 等 Markdown 渲染器识别
+        # 避免在 Windows 下出现 .\images\xxx 的反斜杠路径
+        relative_path = f"./images/{new_image_name}"
         return relative_path
