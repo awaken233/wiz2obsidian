@@ -7,6 +7,7 @@
 - 将所有加密笔记取消加密
 - [releases 页面](https://github.com/awaken233/wiz2obsidian/releases)下载对应系统的可执行文件
 - 在可执行文件同级目录下创建 `.env` 文件，配置为知笔记的用户名和密码, 参考: [.env.example](.env.example)
+- 将设置-安全选项-[登录二次验证暂时关闭](https://github.com/awaken233/wiz2obsidian/issues/16)
 - 运行可执行文件
 
 ## 问题
