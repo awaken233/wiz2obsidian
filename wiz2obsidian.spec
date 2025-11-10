@@ -1,5 +1,8 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
+import certifi
+
+certifi_cacert = certifi.where()
 
 a = Analysis(
     ['main.py'],
@@ -8,6 +11,7 @@ a = Analysis(
     datas=[
         ('conf', 'conf'),
         ('sync', 'sync'),
+        (certifi_cacert, 'certifi'),
     ],
     hiddenimports=[
         'sync.note_synchronizer',

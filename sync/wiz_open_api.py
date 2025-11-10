@@ -1,6 +1,8 @@
 from log import log
 import requests
 import json
+import ssl
+import certifi
 from websocket import create_connection
 
 from sync.config import Config
@@ -189,7 +191,13 @@ class WizOpenApi:
         获取文档的data
         三次hs,一次f, 才可以获取data
         """
-        ws = create_connection(wss_url)
+        ws = create_connection(
+            wss_url,
+            sslopt={
+                'cert_reqs': ssl.CERT_REQUIRED,
+                'ca_certs': certifi.where(),
+            },
+        )
         hs = json.dumps(hs_request)
         f = json.dumps(f_request)
         s = json.dumps(s_request)
