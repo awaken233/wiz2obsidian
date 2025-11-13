@@ -1,10 +1,9 @@
-name: Build and Release Executables
+name: Create Prerelease
 
 on:
   push:
     tags:
-      - 'v*' # Trigger on tags like v1.0.0, v1.2, etc.
-      - '!v*-beta*' # Exclude beta tags
+      - "v*-beta*"
 
 jobs:
   build-windows:
@@ -21,7 +20,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.9' # Specify Python version used in the project
+        python-version: '3.9'
 
     - name: Install dependencies
       run: |
@@ -31,18 +30,15 @@ jobs:
 
     - name: Build Windows EXE
       run: |
-        pyinstaller wiz2obsidian.spec # Use the project's spec file
+        pyinstaller wiz2obsidian.spec
 
     - name: Upload Windows artifact
       uses: actions/upload-artifact@v4
       with:
         name: wiz2obsidian-${{ steps.get_version.outputs.VERSION }}-Windows
-        path: dist/wiz2obsidian.exe # Path to the executable
+        path: dist/wiz2obsidian.exe
 
   build-macos-arm64:
-    # Note: GitHub Actions macos-latest runners are typically Intel.
-    # This build might produce an Intel or Universal binary unless specific steps are taken.
-    # For true ARM64, an ARM runner might be needed. Following example structure for now.
     runs-on: macos-latest
     steps:
     - name: Checkout code
@@ -90,17 +86,14 @@ jobs:
 
     - name: Install dependencies (Intel Arch)
       run: |
-        # Force installation using x86_64 architecture
         arch -x86_64 python -m pip install --upgrade pip
         arch -x86_64 python -m pip install pyinstaller
         arch -x86_64 python -m pip install -r requirements.txt
 
     - name: Build MacOS Intel executable
       env:
-        # Pass TARGET_ARCH to pyinstaller via spec file environment variable lookup
         TARGET_ARCH: 'x86_64'
       run: |
-        # Force pyinstaller execution using x86_64 architecture
         arch -x86_64 python -m PyInstaller wiz2obsidian.spec
 
     - name: Upload MacOS Intel artifact
@@ -110,7 +103,7 @@ jobs:
         path: dist/wiz2obsidian
 
   build-linux:
-    runs-on: ubuntu-latest # Use latest Ubuntu
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -140,17 +133,17 @@ jobs:
         name: wiz2obsidian-${{ steps.get_version.outputs.VERSION }}-Linux
         path: dist/wiz2obsidian
 
-  create-release:
-    # This job runs only if all build jobs succeed and the trigger was a tag push
+  create-prerelease:
     needs: [build-windows, build-macos-arm64, build-macos-intel, build-linux]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/') # Ensure this runs only for tags
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # 获取完整的git历史，用于生成changelog
+          fetch-depth: 0
 
       - name: Extract version from tag
         id: get_version
@@ -159,11 +152,10 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          path: artifacts # Download all artifacts to the 'artifacts' directory
+          path: artifacts
 
       - name: Create release archives
         run: |
-          # Create zip files containing the artifact directories
           VERSION="${{ steps.get_version.outputs.VERSION }}"
           cd artifacts
           for dir in wiz2obsidian-${VERSION}-*/; do
@@ -172,22 +164,51 @@ jobs:
             fi
           done
           cd ..
-          ls -R artifacts # List contents for verification
+          ls -R artifacts
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2 # Use v2 for latest features
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          if [ -z "$PREV_TAG" ]; then
+            PREV_TAG=$(git rev-list --max-parents=0 HEAD)
+          fi
+          
+          echo "## 🚀 Beta 测试版本" > release_notes.md
+          echo "" >> release_notes.md
+          echo "这是一个预发布版本，用于测试新功能和修复。" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### 📝 变更记录" >> release_notes.md
+          echo "" >> release_notes.md
+          git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges >> release_notes.md
+          echo "" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### 📦 下载" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "请根据您的操作系统下载对应的安装包：" >> release_notes.md
+          echo "- Windows: \`wiz2obsidian-${VERSION}-Windows.zip\`" >> release_notes.md
+          echo "- macOS (Apple Silicon): \`wiz2obsidian-${VERSION}-MacOS-ARM64.zip\`" >> release_notes.md
+          echo "- macOS (Intel): \`wiz2obsidian-${VERSION}-MacOS-Intel.zip\`" >> release_notes.md
+          echo "- Linux: \`wiz2obsidian-${VERSION}-Linux.zip\`" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "---" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "**完整变更日志**: [\`${PREV_TAG}...${VERSION}\`](https://github.com/${{ github.repository }}/compare/${PREV_TAG}...${VERSION})" >> release_notes.md
+
+      - name: Create Prerelease
+        uses: softprops/action-gh-release@v2
         with:
-          # 启用自动生成 release notes（包含自动的贡献者信息）
-          generate_release_notes: true
-          # 可选：设置为 draft 直到手动发布
-          # draft: true
-          # 可选：标记为预发布版本
-          # prerelease: contains(github.ref, '-beta') || contains(github.ref, '-rc')
+          prerelease: true
+          draft: false
+          body_path: release_notes.md
           files: |
             artifacts/wiz2obsidian-${{ steps.get_version.outputs.VERSION }}-Windows.zip
             artifacts/wiz2obsidian-${{ steps.get_version.outputs.VERSION }}-MacOS-ARM64.zip
             artifacts/wiz2obsidian-${{ steps.get_version.outputs.VERSION }}-MacOS-Intel.zip
             artifacts/wiz2obsidian-${{ steps.get_version.outputs.VERSION }}-Linux.zip
+            LICENSE
         env:
-          # GITHUB_TOKEN is automatically provided by GitHub Actions
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

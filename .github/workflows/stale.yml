@@ -1,0 +1,32 @@
+name: Close inactive issues
+
+on:
+  schedule:
+    # 每天 北京时间 1:30 运行（UTC 17:30，避免整点高峰期）
+    - cron: "30 17 * * *"
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/stale@v10
+        with:
+          # Issue 相关配置
+          days-before-issue-stale: 30        # 30 天无活动标记为 stale
+          days-before-issue-close: 14        # 标记后 14 天仍无活动则关闭
+          stale-issue-label: "stale"         # 标签名称
+          stale-issue-message: |
+            这个 issue 已经 30 天没有任何活动了。如果问题仍然存在，请回复此消息，我们会重新激活它。否则将在 14 天后自动关闭。
+          close-issue-message: |
+            由于长期无响应，此 issue 已被自动关闭。如果问题仍然存在，欢迎重新开启或创建新的 issue。
+          
+          # PR 相关配置（如果不想处理 PR，设为 -1）
+          days-before-pr-stale: -1           # 不处理 PR
+          days-before-pr-close: -1           # 不处理 PR
+          
+          # GitHub Token（自动提供）
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+

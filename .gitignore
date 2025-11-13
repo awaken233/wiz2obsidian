@@ -4,3 +4,7 @@ output/*
 build/
 dist/
 *.pyc
+
+# 取消忽略 .cursor 目录（覆盖全局 gitignore）
+!.cursor/
+!.cursor/**
