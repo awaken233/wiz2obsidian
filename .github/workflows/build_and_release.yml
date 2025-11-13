@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*' # Trigger on tags like v1.0.0, v1.2, etc.
+      - '!v*-beta*' # Exclude beta tags
 
 jobs:
   build-windows:
