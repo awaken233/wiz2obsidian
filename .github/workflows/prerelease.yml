@@ -166,12 +166,43 @@ jobs:
           cd ..
           ls -R artifacts
 
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          if [ -z "$PREV_TAG" ]; then
+            PREV_TAG=$(git rev-list --max-parents=0 HEAD)
+          fi
+          
+          echo "## 🚀 Beta 测试版本" > release_notes.md
+          echo "" >> release_notes.md
+          echo "这是一个预发布版本，用于测试新功能和修复。" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### 📝 变更记录" >> release_notes.md
+          echo "" >> release_notes.md
+          git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges >> release_notes.md
+          echo "" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### 📦 下载" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "请根据您的操作系统下载对应的安装包：" >> release_notes.md
+          echo "- Windows: \`wiz2obsidian-${VERSION}-Windows.zip\`" >> release_notes.md
+          echo "- macOS (Apple Silicon): \`wiz2obsidian-${VERSION}-MacOS-ARM64.zip\`" >> release_notes.md
+          echo "- macOS (Intel): \`wiz2obsidian-${VERSION}-MacOS-Intel.zip\`" >> release_notes.md
+          echo "- Linux: \`wiz2obsidian-${VERSION}-Linux.zip\`" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "---" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "**完整变更日志**: [\`${PREV_TAG}...${VERSION}\`](https://github.com/${{ github.repository }}/compare/${PREV_TAG}...${VERSION})" >> release_notes.md
+
       - name: Create Prerelease
         uses: softprops/action-gh-release@v2
         with:
           prerelease: true
           draft: false
-          generate_release_notes: true
+          body_path: release_notes.md
           files: |
             artifacts/wiz2obsidian-${{ steps.get_version.outputs.VERSION }}-Windows.zip
             artifacts/wiz2obsidian-${{ steps.get_version.outputs.VERSION }}-MacOS-ARM64.zip
