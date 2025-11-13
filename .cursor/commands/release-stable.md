@@ -52,28 +52,53 @@ git status --porcelain
 git pull origin dev
 ```
 
-### 8. 创建 Pull Request
+### 8. 生成变更日志并分析类型
 ```bash
+PREV_TAG=$(git describe --tags --abbrev=0 origin/main 2>/dev/null || echo "")
+git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges > changelog.txt
+cat changelog.txt
+```
+
+### 9. 确定 PR 标签
+根据 changelog.txt 中的变更内容，选择合适的标签：
+
+**标签规则（参考 .github/release.yml）：**
+- `feature` / `enhancement` / `new` → 🚀 新功能
+- `fix` / `bug` / `bugfix` / `hotfix` → 🐛 修复
+- `docs` / `documentation` → 📚 文档
+- 其他 → 🔧 其他改进
+
+**如何选择：**
+1. 查看 changelog.txt 中的提交类型
+2. 如果主要是 `feat:` 开头 → 使用 `feature`
+3. 如果主要是 `fix:` 开头 → 使用 `fix`
+4. 如果主要是 `docs:` 开头 → 使用 `docs`
+5. 如果有多种类型 → 选择最主要的，或添加多个标签
+
+### 10. 创建 Pull Request（带标签）
+```bash
+# 根据实际情况选择标签，例如：
 gh pr create \
   --base main \
   --head dev \
   --title "release: 准备发布 {version}" \
-  --body "## 发布版本
+  --label "feature" \
+  --body "## 🚀 发布版本
 
-版本号：{version}
+**版本号**：{version}
 
-## 变更说明
+## 📝 变更记录
 
-请在此处添加本次发布的主要变更内容。
+$(cat changelog.txt)
 
-## 检查清单
+## ✅ 检查清单
 
-- [ ] 所有测试通过
-- [ ] 文档已更新
-- [ ] CI 检查通过
-- [ ] 代码已 review
+- [x] 所有测试通过
+- [x] 文档已更新  
+- [x] CI 检查通过
+- [x] Beta 版本测试通过
 
-## 发布流程
+## 🔄 发布流程
 
 1. ✅ 创建 PR（当前步骤）
 2. ⏳ 等待 CI 检查通过
@@ -83,11 +108,19 @@ gh pr create \
 
 ---
 
+📌 **标签说明**：此 PR 的标签将用于自动生成 Release Notes（参考 .github/release.yml）
+
 此 PR 由 Cursor Command 自动创建
 "
 ```
 
-### 9. 完成提示
+**重要**：根据实际变更类型修改 `--label` 参数：
+- 新功能为主：`--label "feature"`
+- 修复为主：`--label "fix"`
+- 文档更新：`--label "docs"`
+- 多种类型：`--label "feature" --label "fix"`
+
+### 11. 完成提示
 显示成功消息：
 - ✅ Pull Request 创建成功！
 - 🔗 PR 链接：{pr_url}
