@@ -149,6 +149,65 @@ pyinstaller --clean wiz2obsidian.spec
 - Linux: `dist/wiz2obsidian`
 
 
+## 开发者指南
+
+### 项目结构
+
+```
+wiz2obsidian/
+├── sync/              # 核心同步逻辑
+│   ├── note_parser.py        # 笔记解析器
+│   ├── image_handler.py      # 图片处理
+│   ├── database.py           # 数据库操作
+│   └── wiz_open_api.py       # 为知笔记 API
+├── .cursor/           # Cursor IDE 配置
+│   ├── commands/             # 发版命令
+│   └── rules/                # 项目规则
+├── scripts/           # 工具脚本
+└── test/              # 测试文件
+```
+
+### 开发环境
+
+```bash
+# 安装依赖
+pip install -r requirements.txt
+
+# 运行测试
+pytest test/
+
+# 本地构建
+python build.py
+```
+
+### 发版流程
+
+使用 Cursor Commands 进行版本发布：
+
+**Beta 版本：**
+```
+在 Cursor 输入: /release-beta
+```
+
+**正式版本：**
+```
+1. 在 Cursor 输入: /release-stable  # 创建 PR
+2. 等待 CI 通过并合并 PR
+3. 在 Cursor 输入: /release-tag     # 打标签发布
+```
+
+详细说明：
+- [Cursor Commands 使用说明](.cursor/commands/README.md)
+- [完整发版流程文档](RELEASE.md)
+
+### 贡献指南
+
+1. Fork 项目并创建功能分支
+2. 在 dev 分支进行开发
+3. 提交 PR 到 dev 分支
+4. 等待 CI 检查通过
+5. Code Review 后合并
+
 ## 参考文章
 
 [WizNote 为知笔记 macOS 本地文件夹分析 | ZRONG's BLOG](https://blog.zengrong.net/post/analysis-of-wiznote/)

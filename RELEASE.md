@@ -181,183 +181,61 @@ git push origin v1.0.0
 
 ---
 
-## 自动化脚本
+## 使用 Cursor Commands 发版
 
-为了简化发版流程，提供以下便捷脚本。
+项目使用 Cursor Commands 进行版本发布，提供了简单、安全的发版流程。
 
-### 创建发布脚本
+### Beta 版本发布
 
-创建 `scripts/release.sh`：
-
-```bash
-#!/bin/bash
-
-set -e
-
-# 颜色输出
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-# 打印带颜色的消息
-print_info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}[WARNING]${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-# 检查是否有未提交的更改
-check_clean_working_tree() {
-    if ! git diff-index --quiet HEAD --; then
-        print_error "工作区有未提交的更改，请先提交或暂存"
-        exit 1
-    fi
-}
-
-# 获取当前分支
-get_current_branch() {
-    git rev-parse --abbrev-ref HEAD
-}
-
-# 发布 Beta 版本
-release_beta() {
-    local version=$1
-    
-    print_info "准备发布 Beta 版本: $version"
-    
-    # 确保在 dev 分支
-    current_branch=$(get_current_branch)
-    if [ "$current_branch" != "dev" ]; then
-        print_warning "当前不在 dev 分支，切换到 dev..."
-        git checkout dev
-    fi
-    
-    # 更新代码
-    print_info "拉取最新代码..."
-    git pull origin dev
-    
-    # 检查工作区
-    check_clean_working_tree
-    
-    # 创建标签
-    print_info "创建标签: $version"
-    git tag "$version"
-    
-    # 推送标签
-    print_info "推送标签到远程..."
-    git push origin "$version"
-    
-    print_info "✅ Beta 版本 $version 发布成功！"
-    print_info "查看构建进度: https://github.com/$(git config --get remote.origin.url | sed 's/.*:\(.*\)\.git/\1/')/actions"
-}
-
-# 发布正式版本
-release_stable() {
-    local version=$1
-    
-    print_info "准备发布正式版本: $version"
-    
-    # 确认操作
-    read -p "确认要发布正式版本 $version 吗？这将合并 dev 到 main。(y/N) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        print_warning "取消发布"
-        exit 1
-    fi
-    
-    # 切换到 dev 并更新
-    print_info "更新 dev 分支..."
-    git checkout dev
-    git pull origin dev
-    check_clean_working_tree
-    
-    # 切换到 main 并更新
-    print_info "更新 main 分支..."
-    git checkout main
-    git pull origin main
-    
-    # 合并 dev 到 main
-    print_info "合并 dev 到 main..."
-    git merge dev --no-ff -m "chore: release $version"
-    
-    # 推送 main
-    print_info "推送 main 分支..."
-    git push origin main
-    
-    # 创建标签
-    print_info "创建标签: $version"
-    git tag "$version"
-    
-    # 推送标签
-    print_info "推送标签到远程..."
-    git push origin "$version"
-    
-    # 切回 dev
-    git checkout dev
-    
-    print_info "✅ 正式版本 $version 发布成功！"
-    print_info "查看发布: https://github.com/$(git config --get remote.origin.url | sed 's/.*:\(.*\)\.git/\1/')/releases"
-}
-
-# 主函数
-main() {
-    if [ $# -eq 0 ]; then
-        print_error "用法: $0 <version> [--beta]"
-        echo "示例:"
-        echo "  $0 v1.0.0-beta1 --beta    # 发布 Beta 版本"
-        echo "  $0 v1.0.0                 # 发布正式版本"
-        exit 1
-    fi
-    
-    local version=$1
-    local is_beta=false
-    
-    # 检查版本号格式
-    if [[ ! $version =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-beta[0-9]+)?$ ]]; then
-        print_error "版本号格式错误，应为 vX.Y.Z 或 vX.Y.Z-betaN"
-        exit 1
-    fi
-    
-    # 检查是否为 beta 版本
-    if [[ $version == *"-beta"* ]] || [[ $2 == "--beta" ]]; then
-        is_beta=true
-    fi
-    
-    # 检查标签是否已存在
-    if git rev-parse "$version" >/dev/null 2>&1; then
-        print_error "标签 $version 已存在"
-        exit 1
-    fi
-    
-    if [ "$is_beta" = true ]; then
-        release_beta "$version"
-    else
-        release_stable "$version"
-    fi
-}
-
-main "$@"
+在 Cursor IDE 聊天框输入：
+```
+/release-beta
 ```
 
-### 使用发布脚本
+然后输入版本号（如 `v1.0.0-beta1`），命令会自动：
+1. 检查版本号格式
+2. 确保在 dev 分支
+3. 检查工作区状态
+4. 创建并推送标签
+5. 触发 GitHub Actions 构建
 
-```bash
-# 1. 赋予执行权限（首次使用）
-chmod +x scripts/release.sh
+### 正式版本发布
 
-# 2. 发布 Beta 版本
-./scripts/release.sh v1.0.0-beta1 --beta
+**步骤 1：创建 PR**
 
-# 3. 发布正式版本
-./scripts/release.sh v1.0.0
+在 Cursor IDE 聊天框输入：
 ```
+/release-stable
+```
+
+输入版本号（如 `v1.0.0`），命令会：
+1. 检查 GitHub CLI 是否安装
+2. 验证版本号格式
+3. 创建 dev → main 的 Pull Request
+4. 自动填充 PR 描述
+
+**步骤 2：等待 PR 合并**
+- CI 检查通过
+- Code Review（如需要）
+- 在 GitHub 上合并 PR
+
+**步骤 3：打标签发布**
+
+PR 合并后，在 Cursor IDE 聊天框输入：
+```
+/release-tag
+```
+
+输入版本号（与 PR 一致），命令会：
+1. 切换到 main 分支
+2. 拉取最新代码
+3. 创建并推送标签
+4. 触发 GitHub Actions 构建
+
+### 详细说明
+
+更多信息请查看：
+- [Cursor Commands 使用说明](.cursor/commands/README.md)
 
 ---
 
@@ -518,6 +396,18 @@ ci: CI/CD 相关
 
 ## 快速参考
 
+### 使用 Cursor Commands（推荐）
+
+```
+# Beta 版本
+/release-beta → 输入 v1.0.0-beta1
+
+# 正式版本
+/release-stable → 输入 v1.0.0 → 等待 PR 合并 → /release-tag → 输入 v1.0.0
+```
+
+### 手动操作
+
 ```bash
 # 发布 Beta 版本（在 dev 分支）
 git checkout dev
@@ -525,17 +415,13 @@ git pull origin dev
 git tag v1.0.0-beta1
 git push origin v1.0.0-beta1
 
-# 发布正式版本（合并到 main）
+# 发布正式版本（通过 PR）
+gh pr create --base main --head dev --title "release: v1.0.0"
+# 等待 PR 合并
 git checkout main
 git pull origin main
-git merge dev
-git push origin main
 git tag v1.0.0
 git push origin v1.0.0
-
-# 使用自动化脚本
-./scripts/release.sh v1.0.0-beta1 --beta  # Beta
-./scripts/release.sh v1.0.0               # 正式
 ```
 
 ---
