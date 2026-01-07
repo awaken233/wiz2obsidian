@@ -20,6 +20,7 @@ jobs:
           stale-issue-label: "stale"         # 标签名称
           stale-issue-message: |
             这个 issue 已经 30 天没有任何活动了。如果问题仍然存在，请回复此消息，我们会重新激活它。否则将在 14 天后自动关闭。
+          close-issue-label: "inactive"
           close-issue-message: |
             由于长期无响应，此 issue 已被自动关闭。如果问题仍然存在，欢迎重新开启或创建新的 issue。
           
