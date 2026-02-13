@@ -1,5 +1,6 @@
 import re
 from log import log
+import time
 from sync.database import Database
 from sync.file_manager import FileManager
 from sync.image_handler import ImageHandler
@@ -14,6 +15,8 @@ from sync.wiz_open_api import WizOpenApi
 class NoteSynchronizer:
     # 同步的步长
     PAGE_SIZE = 200
+    ATTACHMENT_DOWNLOAD_MAX_ATTEMPTS = 3
+    ATTACHMENT_DOWNLOAD_RETRY_SLEEP_S = 1
 
     def __init__(self, api_client: WizOpenApi, db: Database):
         self.api_client = api_client
@@ -118,21 +121,41 @@ class NoteSynchronizer:
             parsed_note.replace_image_url(origin_img_image_url_map)
 
             # 处理笔记附件方法
-            self._process_note_attachment(record, parsed_note)
+            attachment_fail_reason = self._process_note_attachment(record, parsed_note)
 
             # 拼接笔记属性和 md 原文，写入本地文件中
             note_content = parsed_note.content
+            if not isinstance(note_content, str):
+                raise Exception(
+                    f"parsed_note.content must be str, got {type(note_content).__name__}"
+                )
             note_prop = NoteProperty.from_sync_record(record).to_string()
             joined_note_content = note_prop + note_content
             FileManager.save_md_to_file(record['category'], record['title'], joined_note_content)
 
             # 更新笔记的同步状态
-            self.db.update_note_sync_status(record['doc_guid'], sync_status=True, fail_reason='')
+            if attachment_fail_reason:
+                self.db.update_note_sync_status(record['doc_guid'], sync_status=False, fail_reason=attachment_fail_reason)
+            else:
+                self.db.update_note_sync_status(record['doc_guid'], sync_status=True, fail_reason='')
         except Exception as e:
             log.exception('sync_single_note_to_local error: ')
             # 出现异常时更新同步状态和错误原因
             error_reason = str(e)
             self.db.update_note_sync_status(record['doc_guid'], sync_status=False, fail_reason=error_reason)
+
+    def _download_with_retry(self, label, download_func):
+        max_attempts = self.ATTACHMENT_DOWNLOAD_MAX_ATTEMPTS
+        for attempt in range(1, max_attempts + 1):
+            try:
+                if attempt > 1:
+                    log.info(f'下载重试({attempt}/{max_attempts}): {label}')
+                return download_func()
+            except Exception as e:
+                log.warning(f'下载失败({attempt}/{max_attempts}): {label}, 错误: {type(e).__name__}: {e}')
+                if attempt >= max_attempts:
+                    raise
+                time.sleep(self.ATTACHMENT_DOWNLOAD_RETRY_SLEEP_S * attempt)
     
     def _extract_attachment_links_from_markdown(self, content):
         """
@@ -160,36 +183,42 @@ class NoteSynchronizer:
         :param record: 笔记记录
         :param parsed_note: 解析后的笔记对象
         """
+        # 从markdown内容中提取附件链接
+        attachment_links = self._extract_attachment_links_from_markdown(parsed_note.content)
+        if not attachment_links:
+            return None
+
         try:
-            # 从markdown内容中提取附件链接
-            attachment_links = self._extract_attachment_links_from_markdown(parsed_note.content)
-            if not attachment_links:
-                return
-
-            # 获取协作笔记token
             token = self.api_client.get_collaboration_token(record['doc_guid'])
-            
-            # 下载附件并生成映射表
-            attachment_url_map = {}
-            for attachment_name in attachment_links:
-                try:
-                    # 下载附件二进制内容
-                    attachment_byte = self.api_client.get_collaboration_image_byte(token, record['doc_guid'], attachment_name)
-                    # 保存附件到本地
-                    FileManager.download_attachment_from_byte(record, attachment_name, attachment_byte)
-                    # 生成相对路径
-                    relative_path = f"./attachments/{attachment_name}"
-                    attachment_url_map[attachment_name] = relative_path
-                    log.info(f'协作笔记附件下载完成: {attachment_name}')
-                except Exception as e:
-                    log.warning(f'协作笔记附件下载失败: {attachment_name}, 错误: {str(e)}')
-
-            # 替换markdown内容中的附件链接（从特殊标记替换为本地路径）
-            for original_name, local_path in attachment_url_map.items():
-                parsed_note.content = parsed_note.content.replace(f'(wiz-collab-attachment://{original_name})', f'({local_path})')
-
         except Exception as e:
-            log.warning(f'处理协作笔记附件失败: {str(e)}')
+            return f'协作笔记获取附件token失败: {type(e).__name__}: {e}'
+
+        attachment_url_map = {}
+        failures = []
+        for attachment_name in attachment_links:
+            label = f'{attachment_name} (doc_guid={record.get("doc_guid")})'
+            try:
+                attachment_byte = self._download_with_retry(
+                    label,
+                    lambda: self.api_client.get_collaboration_image_byte(token, record['doc_guid'], attachment_name),
+                )
+                FileManager.download_attachment_from_byte(record, attachment_name, attachment_byte)
+                relative_path = f"./attachments/{attachment_name}"
+                attachment_url_map[attachment_name] = relative_path
+                log.info(f'协作笔记附件下载完成: {attachment_name}')
+            except Exception as e:
+                failures.append(f'{attachment_name}: {type(e).__name__}: {e}')
+                log.warning(f'协作笔记附件下载失败(已重试): {attachment_name}, 错误: {type(e).__name__}: {e}')
+
+        for original_name, local_path in attachment_url_map.items():
+            parsed_note.content = parsed_note.content.replace(f'(wiz-collab-attachment://{original_name})', f'({local_path})')
+
+        if failures:
+            if len(failures) > 3:
+                shown = failures[:3]
+                return f'协作笔记附件下载失败: {"; ".join(shown)}; ...(+{len(failures) - 3} more)'
+            return f'协作笔记附件下载失败: {"; ".join(failures)}'
+        return None
 
     def _process_normal_note_attachments(self, record, parsed_note: ParsedNote):
         """
@@ -198,42 +227,49 @@ class NoteSynchronizer:
         :param parsed_note: 解析后的笔记对象
         """
         try:
-            # 获取笔记附件列表
             attachments = self.api_client.get_note_attachments(record['doc_guid'])
-            if not attachments:
-                return
-
-            # 下载附件并生成附件列表
-            attachment_list = []
-            for attachment in attachments:
-                att_guid = attachment.get('attGuid', 'unknown')
-                att_name = attachment.get('name', 'unknown')
-                try:
-                    # 下载附件
-                    attachment_byte = self.api_client.download_attachment(record['doc_guid'], att_guid)
-                    # 保存附件到本地
-                    FileManager.download_attachment_from_byte(record, att_name, attachment_byte)
-                    # 生成相对路径
-                    relative_path = f"./attachments/{att_name}"
-                    attachment_list.append(f"- [{att_name}]({relative_path})")
-                    log.info(f'普通笔记附件下载完成: {att_name}')
-                except Exception as e:
-                    log.warning(f'普通笔记附件下载失败: {att_name}, 错误: {str(e)}')
-
-            # 在笔记内容末尾追加附件列表
-            if attachment_list:
-                attachment_section = "\n\n## 附件\n\n" + "\n".join(attachment_list) + "\n"
-                parsed_note.content += attachment_section
-
         except Exception as e:
-            log.warning(f'处理普通笔记附件失败: {str(e)}')
+            return f'普通笔记获取附件列表失败: {type(e).__name__}: {e}'
+
+        if not attachments:
+            return None
+
+        attachment_list = []
+        failures = []
+        for attachment in attachments:
+            att_guid = attachment.get('attGuid', 'unknown')
+            att_name = attachment.get('name', 'unknown')
+            label = f'{att_name} (att_guid={att_guid}, doc_guid={record.get("doc_guid")})'
+            try:
+                attachment_byte = self._download_with_retry(
+                    label,
+                    lambda: self.api_client.download_attachment(record['doc_guid'], att_guid, att_name=att_name),
+                )
+                FileManager.download_attachment_from_byte(record, att_name, attachment_byte)
+                relative_path = f"./attachments/{att_name}"
+                attachment_list.append(f"- [{att_name}]({relative_path})")
+                log.info(f'普通笔记附件下载完成: {att_name}')
+            except Exception as e:
+                failures.append(f'{att_name}: {type(e).__name__}: {e}')
+                log.warning(f'普通笔记附件下载失败(已重试): {att_name}, 错误: {type(e).__name__}: {e}')
+
+        if attachment_list:
+            attachment_section = "\n\n## 附件\n\n" + "\n".join(attachment_list) + "\n"
+            parsed_note.content += attachment_section
+
+        if failures:
+            if len(failures) > 3:
+                shown = failures[:3]
+                return f'普通笔记附件下载失败: {"; ".join(shown)}; ...(+{len(failures) - 3} more)'
+            return f'普通笔记附件下载失败: {"; ".join(failures)}'
+        return None
 
     def _process_note_attachment(self, record, parsed_note: ParsedNote):
         # 判断笔记的类型
         if Note.is_collaboration_note(record['type']):
-            self._process_collaboration_note_attachments(record, parsed_note)
+            return self._process_collaboration_note_attachments(record, parsed_note)
         else:
-            self._process_normal_note_attachments(record, parsed_note)
+            return self._process_normal_note_attachments(record, parsed_note)
 
     # 将笔记和笔记图片写入图片, 并将图片上传到图床
     def _sync_note_to_local(self, unsync_records):
